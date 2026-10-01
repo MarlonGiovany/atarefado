@@ -1,4 +1,4 @@
-const TOKEN_KEY = 'taskflow.token'
+const TOKEN_KEY = 'atarefado.token'
 
 export const tokenStore = {
   get(): string | null {
@@ -34,7 +34,7 @@ export class ApiError extends Error {
 }
 
 /** Fired when the server rejects our token, so the auth layer can log out. */
-export const UNAUTHORIZED_EVENT = 'taskflow:unauthorized'
+export const UNAUTHORIZED_EVENT = 'atarefado:unauthorized'
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 

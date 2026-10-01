@@ -9,7 +9,8 @@ export type Card = {
   title: string
   description: string
   position: number
-  dueDate: string | null
+  /** Day the task belongs to (ISO timestamp at UTC midnight) */
+  date: string
   columnId: string
   assigneeId: string | null
   assignee: { id: string; name: string } | null

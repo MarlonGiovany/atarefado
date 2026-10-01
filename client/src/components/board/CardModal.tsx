@@ -1,15 +1,16 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Card, Member } from '../../lib/types'
-import { toDateInput } from '../../lib/dates'
+import { dayOf, isDayKey } from '../../lib/dates'
 import { errorMessage } from '../../lib/api'
 import { Modal } from '../Modal'
-import { Button, ErrorText, Input, Label } from '../ui'
+import { Button, ErrorText, Input, Label, TrashIcon } from '../ui'
 
 export type CardChanges = {
   title: string
   description: string
-  dueDate: string | null
+  /** YYYY-MM-DD; changing it moves the card to another day */
+  date: string
   assigneeId: string | null
 }
 
@@ -18,45 +19,45 @@ type CardModalProps = {
   columnTitle: string
   members: Member[]
   onSave: (cardId: string, changes: CardChanges) => Promise<void>
-  onDelete: (cardId: string) => Promise<void>
+  /** Asks for confirmation before deleting; see ConfirmDialog */
+  onRequestDelete: (card: Card) => void
   onClose: () => void
 }
 
-export function CardModal({ card, columnTitle, members, onSave, onDelete, onClose }: CardModalProps) {
+export function CardModal({
+  card,
+  columnTitle,
+  members,
+  onSave,
+  onRequestDelete,
+  onClose,
+}: CardModalProps) {
   const [title, setTitle] = useState(card.title)
   const [description, setDescription] = useState(card.description)
-  const [dueDate, setDueDate] = useState(toDateInput(card.dueDate))
+  const [date, setDate] = useState(dayOf(card.date))
   const [assigneeId, setAssigneeId] = useState(card.assigneeId ?? '')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  async function run(action: () => Promise<void>) {
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!isDayKey(date)) {
+      setError('Escolha uma data válida.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
-      await action()
+      await onSave(card.id, {
+        title: title.trim(),
+        description,
+        date,
+        assigneeId: assigneeId || null,
+      })
       onClose()
     } catch (err) {
       setError(errorMessage(err))
       setBusy(false)
-    }
-  }
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    run(() =>
-      onSave(card.id, {
-        title: title.trim(),
-        description,
-        dueDate: dueDate || null,
-        assigneeId: assigneeId || null,
-      }),
-    )
-  }
-
-  function handleDelete() {
-    if (confirm(`Excluir "${card.title}"? Essa ação não pode ser desfeita.`)) {
-      run(() => onDelete(card.id))
     }
   }
 
@@ -90,12 +91,13 @@ export function CardModal({ card, columnTitle, members, onSave, onDelete, onClos
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="card-due">Prazo</Label>
+            <Label htmlFor="card-date">Data</Label>
             <Input
-              id="card-due"
+              id="card-date"
               type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
             />
           </div>
           <div>
@@ -119,7 +121,13 @@ export function CardModal({ card, columnTitle, members, onSave, onDelete, onClos
         <ErrorText>{error}</ErrorText>
 
         <div className="flex items-center justify-between gap-2 pt-2">
-          <Button type="button" variant="danger" onClick={handleDelete} disabled={busy}>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={() => onRequestDelete(card)}
+            disabled={busy}
+          >
+            <TrashIcon />
             Excluir
           </Button>
           <div className="flex gap-2">

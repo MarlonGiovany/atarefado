@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { HttpError } from "../lib/http-error.js";
 import { requireMember, requireOwner } from "../lib/access.js";
+import { dateToDay, dayString, dayToDate } from "../lib/dates.js";
 import { currentUser } from "../middleware/auth.js";
 
 export const boardsRouter = Router();
@@ -34,9 +35,11 @@ boardsRouter.post("/", async (req, res) => {
   res.status(201).json({ board });
 });
 
+/** `?date=YYYY-MM-DD` limits the cards to that day; without it every card is returned. */
 boardsRouter.get("/:boardId", async (req, res) => {
   const { boardId } = req.params;
   await requireMember(boardId, currentUser(req));
+  const { date } = z.object({ date: dayString.optional() }).parse(req.query);
 
   const board = await prisma.board.findUnique({
     where: { id: boardId },
@@ -48,6 +51,7 @@ boardsRouter.get("/:boardId", async (req, res) => {
         orderBy: { position: "asc" },
         include: {
           cards: {
+            where: date ? { date: dayToDate(date) } : undefined,
             orderBy: { position: "asc" },
             include: { assignee: { select: { id: true, name: true } } },
           },
@@ -56,6 +60,22 @@ boardsRouter.get("/:boardId", async (req, res) => {
     },
   });
   res.json({ board });
+});
+
+/** Number of cards per day in a date range, used by the day picker. */
+boardsRouter.get("/:boardId/days", async (req, res) => {
+  const { boardId } = req.params;
+  await requireMember(boardId, currentUser(req));
+  const { from, to } = z.object({ from: dayString, to: dayString }).parse(req.query);
+  if (from > to) throw new HttpError(400, "Intervalo de datas inválido");
+
+  const groups = await prisma.card.groupBy({
+    by: ["date"],
+    where: { column: { boardId }, date: { gte: dayToDate(from), lte: dayToDate(to) } },
+    _count: { _all: true },
+  });
+  const days = Object.fromEntries(groups.map((g) => [dateToDay(g.date), g._count._all]));
+  res.json({ days });
 });
 
 boardsRouter.patch("/:boardId", async (req, res) => {

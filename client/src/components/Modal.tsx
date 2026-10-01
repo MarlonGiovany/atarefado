@@ -5,9 +5,13 @@ type ModalProps = {
   title: string
   onClose: () => void
   children: ReactNode
+  size?: 'sm' | 'lg'
 }
 
-export function Modal({ title, onClose, children }: ModalProps) {
+// Open modals, innermost last: Escape only closes the one on top
+const openModals: symbol[] = []
+
+export function Modal({ title, onClose, children, size = 'lg' }: ModalProps) {
   const bodyRef = useRef<HTMLDivElement>(null)
   // Keep the latest onClose without re-running the mount effect (which moves focus)
   const onCloseRef = useRef(onClose)
@@ -16,12 +20,19 @@ export function Modal({ title, onClose, children }: ModalProps) {
   })
 
   useEffect(() => {
+    const id = Symbol()
+    openModals.push(id)
+    const previousFocus = document.activeElement as HTMLElement | null
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current()
+      if (e.key === 'Escape' && openModals.at(-1) === id) onCloseRef.current()
     }
     document.addEventListener('keydown', onKey)
     bodyRef.current?.querySelector<HTMLElement>('input, textarea, select, button')?.focus()
-    return () => document.removeEventListener('keydown', onKey)
+    return () => {
+      openModals.splice(openModals.indexOf(id), 1)
+      document.removeEventListener('keydown', onKey)
+      previousFocus?.focus()
+    }
   }, [])
 
   return (
@@ -35,7 +46,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="w-full max-w-lg rounded-2xl bg-white shadow-xl ring-1 ring-slate-200"
+        className={`w-full rounded-2xl bg-white shadow-xl ring-1 ring-slate-200 ${size === 'sm' ? 'max-w-sm' : 'max-w-lg'}`}
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="font-semibold text-slate-900">{title}</h2>

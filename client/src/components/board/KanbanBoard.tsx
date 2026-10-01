@@ -22,6 +22,7 @@ type KanbanBoardProps = {
   setColumns: Dispatch<SetStateAction<Column[]>>
   onMoveCard: (cardId: string, columnId: string, position: number) => void
   onOpenCard: (card: Card) => void
+  onDeleteCard: (card: Card) => void
   onAddCard: (columnId: string, title: string) => Promise<void>
   onAddColumn: (title: string) => Promise<void>
   onRenameColumn: (columnId: string, title: string) => void
@@ -38,6 +39,7 @@ export function KanbanBoard({
   setColumns,
   onMoveCard,
   onOpenCard,
+  onDeleteCard,
   onAddCard,
   onAddColumn,
   onRenameColumn,
@@ -156,6 +158,7 @@ export function KanbanBoard({
             key={column.id}
             column={column}
             onOpenCard={onOpenCard}
+            onDeleteCard={onDeleteCard}
             onAddCard={onAddCard}
             onRename={onRenameColumn}
             onDelete={onDeleteColumn}

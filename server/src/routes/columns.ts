@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { boardIdOfColumn, requireMember } from "../lib/access.js";
+import { dayString, dayToDate, todayUtc } from "../lib/dates.js";
 import { currentUser } from "../middleware/auth.js";
 
 export const columnsRouter = Router();
@@ -31,10 +32,11 @@ columnsRouter.delete("/:columnId", async (req, res) => {
 columnsRouter.post("/:columnId/cards", async (req, res) => {
   const { columnId } = req.params;
   await requireMember(await boardIdOfColumn(columnId), currentUser(req));
-  const { title, description } = z
+  const { title, description, date } = z
     .object({
       title: z.string().trim().min(1).max(200),
       description: z.string().max(5000).optional(),
+      date: dayString.optional(),
     })
     .parse(req.body);
 
@@ -43,7 +45,13 @@ columnsRouter.post("/:columnId/cards", async (req, res) => {
     orderBy: { position: "desc" },
   });
   const card = await prisma.card.create({
-    data: { title, description, columnId, position: (last?.position ?? 0) + 1 },
+    data: {
+      title,
+      description,
+      columnId,
+      date: date ? dayToDate(date) : todayUtc(),
+      position: (last?.position ?? 0) + 1,
+    },
     include: { assignee: { select: { id: true, name: true } } },
   });
   res.status(201).json({ card });

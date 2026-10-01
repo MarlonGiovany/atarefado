@@ -48,16 +48,18 @@ model Column {
 }
 
 model Card {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
-  description String    @default("")
+  description String   @default("")
   position    Float
-  dueDate     DateTime?
+  // Day the task belongs to, stored as UTC midnight (date-only semantics)
+  date        DateTime
   columnId    String
-  column      Column    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  column      Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
   assigneeId  String?
-  assignee    User?     @relation("CardAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
+  assignee    User?    @relation("CardAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
 
   @@index([columnId])
+  @@index([date])
 }

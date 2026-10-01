@@ -2,7 +2,7 @@
  * Seeds a demo account with a sample board so visitors can try the app.
  * Safe to re-run: the demo users and their boards are recreated from scratch.
  *
- *   Demo login: demo@taskflow.dev / demo12345
+ *   Demo login: demo@atarefado.dev / demo12345
  */
 import bcrypt from "bcryptjs";
 import { prisma } from "../src/lib/prisma.js";
@@ -10,27 +10,32 @@ import { prisma } from "../src/lib/prisma.js";
 const DEMO_PASSWORD = "demo12345";
 
 const users = [
-  { name: "Usuário Demo", email: "demo@taskflow.dev" },
-  { name: "Ana Souza", email: "ana@taskflow.dev" },
-  { name: "Pedro Lima", email: "pedro@taskflow.dev" },
+  { name: "Usuário Demo", email: "demo@atarefado.dev" },
+  { name: "Ana Souza", email: "ana@atarefado.dev" },
+  { name: "Pedro Lima", email: "pedro@atarefado.dev" },
 ];
 
-const daysFromNow = (days: number) => {
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d;
+/** Day relative to the local "today" of whoever runs the seed, stored as UTC midnight. */
+const daysFromToday = (days: number) => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + days));
 };
 
-type SeedCard = { title: string; description?: string; due?: number; assignee?: number };
+type SeedCard = { title: string; description?: string; day: number; assignee?: number };
 
 const columns: { title: string; cards: SeedCard[] }[] = [
   {
     title: "A fazer",
     cards: [
-      { title: "Escrever README com prints", due: 5, assignee: 0 },
-      { title: "Adicionar modo escuro", description: "Respeitar o tema do sistema e ter um botão para alternar." },
-      { title: "Configurar CI com GitHub Actions", due: 10, assignee: 1 },
+      { title: "Escrever README com prints", day: 0, assignee: 0 },
+      {
+        title: "Adicionar modo escuro",
+        description: "Respeitar o tema do sistema e ter um botão para alternar.",
+        day: 0,
+      },
+      { title: "Configurar CI com GitHub Actions", day: 1, assignee: 1 },
+      { title: "Publicar o app online", day: 3, assignee: 0 },
+      { title: "Revisar textos da interface", day: -1, assignee: 2 },
     ],
   },
   {
@@ -39,21 +44,25 @@ const columns: { title: string; cards: SeedCard[] }[] = [
       {
         title: "Atualizações em tempo real com Socket.IO",
         description: "Enviar a movimentação dos cards para todos que estão vendo o quadro.",
-        due: 2,
+        day: 0,
         assignee: 0,
       },
-      { title: "Comentários nos cards", assignee: 2 },
+      { title: "Comentários nos cards", day: 1, assignee: 2 },
     ],
   },
   {
     title: "Em revisão",
-    cards: [{ title: "Arrastar e soltar entre colunas", due: -1, assignee: 1 }],
+    cards: [
+      { title: "Arrastar e soltar entre colunas", day: 0, assignee: 1 },
+      { title: "Seletor de datas", day: -1, assignee: 0 },
+    ],
   },
   {
     title: "Concluído",
     cards: [
-      { title: "Autenticação com JWT", assignee: 0 },
-      { title: "Compartilhamento de quadros e permissões", assignee: 2 },
+      { title: "Autenticação com JWT", day: -2, assignee: 0 },
+      { title: "Compartilhamento de quadros e permissões", day: -1, assignee: 2 },
+      { title: "Traduzir a interface", day: 0, assignee: 1 },
     ],
   },
 ];
@@ -90,7 +99,7 @@ async function main() {
               title: card.title,
               description: card.description ?? "",
               position: j + 1,
-              dueDate: card.due !== undefined ? daysFromNow(card.due) : null,
+              date: daysFromToday(card.day),
               assigneeId: card.assignee !== undefined ? created[card.assignee].id : null,
             })),
           },

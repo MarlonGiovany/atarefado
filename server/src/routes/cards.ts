@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { HttpError } from "../lib/http-error.js";
 import { boardIdOfCard, boardIdOfColumn, requireMember } from "../lib/access.js";
+import { dayString, dayToDate } from "../lib/dates.js";
 import { currentUser } from "../middleware/auth.js";
 
 export const cardsRouter = Router();
@@ -12,7 +13,7 @@ const cardInclude = { assignee: { select: { id: true, name: true } } } as const;
 const updateSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   description: z.string().max(5000).optional(),
-  dueDate: z.coerce.date().nullable().optional(),
+  date: dayString.optional(),
   assigneeId: z.string().nullable().optional(),
 });
 
@@ -20,7 +21,7 @@ cardsRouter.patch("/:cardId", async (req, res) => {
   const { cardId } = req.params;
   const boardId = await boardIdOfCard(cardId);
   await requireMember(boardId, currentUser(req));
-  const data = updateSchema.parse(req.body);
+  const { date, ...data } = updateSchema.parse(req.body);
 
   if (data.assigneeId) {
     const isMember = await prisma.boardMember.findUnique({
@@ -31,7 +32,7 @@ cardsRouter.patch("/:cardId", async (req, res) => {
 
   const card = await prisma.card.update({
     where: { id: cardId },
-    data,
+    data: { ...data, ...(date && { date: dayToDate(date) }) },
     include: cardInclude,
   });
   res.json({ card });

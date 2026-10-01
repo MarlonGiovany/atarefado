@@ -38,7 +38,7 @@ export function LoginPage() {
       <section className="hidden flex-col justify-between bg-indigo-600 p-12 text-white lg:flex">
         <span className="flex items-center gap-2 text-lg font-semibold">
           <img src="/favicon.svg" alt="" className="size-8 rounded-lg ring-2 ring-white/30" />
-          TaskFlow
+          Atarefado
         </span>
         <div>
           <h1 className="text-4xl leading-tight font-bold">
