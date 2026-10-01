@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String
+  email        String        @unique
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  memberships  BoardMember[]
+  assigned     Card[]        @relation("CardAssignee")
+}
+
+model Board {
+  id        String        @id @default(cuid())
+  title     String
+  createdAt DateTime      @default(now())
+  members   BoardMember[]
+  columns   Column[]
+}
+
+// role: "OWNER" | "MEMBER" (SQLite has no native enums)
+model BoardMember {
+  boardId String
+  userId  String
+  role    String @default("MEMBER")
+  board   Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([boardId, userId])
+}
+
+model Column {
+  id       String @id @default(cuid())
+  title    String
+  position Float
+  boardId  String
+  board    Board  @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  cards    Card[]
+
+  @@index([boardId])
+}
+
+model Card {
+  id          String    @id @default(cuid())
+  title       String
+  description String    @default("")
+  position    Float
+  dueDate     DateTime?
+  columnId    String
+  column      Column    @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  assigneeId  String?
+  assignee    User?     @relation("CardAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  @@index([columnId])
+}
