@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import type { ReactNode } from 'react'
 import { useAuth } from '../auth/useAuth'
-import { Avatar, Button, Logo } from './ui'
+import { Avatar, Button, Credit, Logo } from './ui'
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth()
@@ -18,13 +18,16 @@ export function Layout({ children }: { children: ReactNode }) {
               <span className="hidden text-sm text-slate-600 sm:inline">{user.name}</span>
               <Avatar name={user.name} id={user.id} />
               <Button variant="ghost" onClick={logout}>
-                Log out
+                Sair
               </Button>
             </div>
           )}
         </div>
       </header>
       <main className="flex flex-1 flex-col">{children}</main>
+      <footer className="border-t border-slate-200 py-4 text-center">
+        <Credit />
+      </footer>
     </div>
   )
 }

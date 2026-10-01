@@ -43,7 +43,7 @@ export function ColumnView({ column, onOpenCard, onAddCard, onRename, onDelete }
         {editingTitle ? (
           <Input
             autoFocus
-            aria-label="Column title"
+            aria-label="Nome da coluna"
             value={title}
             maxLength={100}
             onChange={(e) => setTitle(e.target.value)}
@@ -64,7 +64,7 @@ export function ColumnView({ column, onOpenCard, onAddCard, onRename, onDelete }
               setTitle(column.title)
               setEditingTitle(true)
             }}
-            title="Rename column"
+            title="Renomear coluna"
             className="min-w-0 flex-1 truncate rounded px-1 text-left text-sm font-semibold text-slate-700 hover:bg-slate-200/70"
           >
             {column.title}
@@ -76,8 +76,8 @@ export function ColumnView({ column, onOpenCard, onAddCard, onRename, onDelete }
         <button
           type="button"
           onClick={() => onDelete(column)}
-          aria-label={`Delete column ${column.title}`}
-          title="Delete column"
+          aria-label={`Excluir coluna ${column.title}`}
+          title="Excluir coluna"
           className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
@@ -108,8 +108,8 @@ export function ColumnView({ column, onOpenCard, onAddCard, onRename, onDelete }
           <form onSubmit={submitCard} className="space-y-2">
             <Input
               autoFocus
-              aria-label="Card title"
-              placeholder="What needs to be done?"
+              aria-label="Título do card"
+              placeholder="O que precisa ser feito?"
               value={newTitle}
               maxLength={200}
               onChange={(e) => setNewTitle(e.target.value)}
@@ -117,10 +117,10 @@ export function ColumnView({ column, onOpenCard, onAddCard, onRename, onDelete }
             />
             <div className="flex gap-2">
               <Button type="submit" disabled={!newTitle.trim()}>
-                Add card
+                Adicionar
               </Button>
               <Button type="button" variant="ghost" onClick={() => setAdding(false)}>
-                Cancel
+                Cancelar
               </Button>
             </div>
           </form>
@@ -130,7 +130,7 @@ export function ColumnView({ column, onOpenCard, onAddCard, onRename, onDelete }
             onClick={() => setAdding(true)}
             className="w-full rounded-lg px-2 py-1.5 text-left text-sm text-slate-500 hover:bg-slate-200/70 hover:text-slate-700"
           >
-            + Add a card
+            + Adicionar card
           </button>
         )}
       </div>

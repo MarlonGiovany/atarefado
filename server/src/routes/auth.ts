@@ -24,7 +24,7 @@ authRouter.post("/register", async (req, res) => {
   const { name, email, password } = registerSchema.parse(req.body);
 
   const exists = await prisma.user.findUnique({ where: { email } });
-  if (exists) throw new HttpError(409, "Email already in use");
+  if (exists) throw new HttpError(409, "Este e-mail já está em uso");
 
   const user = await prisma.user.create({
     data: { name, email, passwordHash: await bcrypt.hash(password, 10) },
@@ -39,7 +39,7 @@ authRouter.post("/login", async (req, res) => {
 
   const user = await prisma.user.findUnique({ where: { email } });
   const valid = user && (await bcrypt.compare(password, user.passwordHash));
-  if (!user || !valid) throw new HttpError(401, "Invalid email or password");
+  if (!user || !valid) throw new HttpError(401, "E-mail ou senha inválidos");
 
   res.json({
     token: signToken(user.id),
@@ -52,6 +52,6 @@ authRouter.get("/me", requireAuth, async (req, res) => {
     where: { id: currentUser(req) },
     select: publicUser,
   });
-  if (!user) throw new HttpError(401, "User no longer exists");
+  if (!user) throw new HttpError(401, "Usuário não encontrado");
   res.json({ user });
 });

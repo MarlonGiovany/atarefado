@@ -7,7 +7,7 @@ import { currentUser } from "../middleware/auth.js";
 
 export const boardsRouter = Router();
 
-const DEFAULT_COLUMNS = ["To do", "In progress", "Done"];
+const DEFAULT_COLUMNS = ["A fazer", "Em andamento", "Concluído"];
 
 const titleSchema = z.object({ title: z.string().trim().min(1).max(100) });
 
@@ -81,12 +81,12 @@ boardsRouter.post("/:boardId/members", async (req, res) => {
   const { email } = z.object({ email: z.email().toLowerCase() }).parse(req.body);
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) throw new HttpError(404, "No user with this email");
+  if (!user) throw new HttpError(404, "Nenhum usuário cadastrado com este e-mail");
 
   const existing = await prisma.boardMember.findUnique({
     where: { boardId_userId: { boardId, userId: user.id } },
   });
-  if (existing) throw new HttpError(409, "User is already a member");
+  if (existing) throw new HttpError(409, "Este usuário já é membro do quadro");
 
   const member = await prisma.boardMember.create({
     data: { boardId, userId: user.id },
@@ -102,7 +102,7 @@ boardsRouter.delete("/:boardId/members/:userId", async (req, res) => {
   if (userId === me) {
     const membership = await requireMember(boardId, me);
     if (membership.role === "OWNER") {
-      throw new HttpError(400, "The owner can't leave; delete the board instead");
+      throw new HttpError(400, "O dono não pode sair do quadro; exclua o quadro em vez disso");
     }
   } else {
     await requireOwner(boardId, me);

@@ -6,7 +6,7 @@ export function toDateInput(iso: string | null) {
 }
 
 export function formatDue(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
+  return new Date(iso).toLocaleDateString('pt-BR', {
     month: 'short',
     day: 'numeric',
     timeZone: 'UTC',

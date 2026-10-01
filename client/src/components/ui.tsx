@@ -52,7 +52,7 @@ export function Spinner({ fullScreen = false }: { fullScreen?: boolean }) {
   const spinner = (
     <div
       role="status"
-      aria-label="Loading"
+      aria-label="Carregando"
       className="size-6 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600"
     />
   )
@@ -90,5 +90,13 @@ export function Logo() {
       <img src="/favicon.svg" alt="" className="size-7" />
       TaskFlow
     </span>
+  )
+}
+
+export function Credit() {
+  return (
+    <p className="text-xs text-slate-500">
+      Desenvolvido por <span className="font-semibold text-slate-700">Marlon Giovany</span>
+    </p>
   )
 }

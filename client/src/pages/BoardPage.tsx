@@ -73,8 +73,8 @@ export function BoardPage() {
 
   const deleteColumn = (column: Column) => {
     const warning = column.cards.length
-      ? `Delete "${column.title}" and its ${column.cards.length} card(s)?`
-      : `Delete "${column.title}"?`
+      ? `Excluir "${column.title}" e seus ${column.cards.length} card(s)?`
+      : `Excluir "${column.title}"?`
     if (!confirm(warning)) return
     mutate(async () => {
       setColumns((cols) => cols.filter((c) => c.id !== column.id))
@@ -121,7 +121,7 @@ export function BoardPage() {
   }
 
   const deleteBoard = () => {
-    if (!board || !confirm(`Delete the board "${board.title}" and everything in it?`)) return
+    if (!board || !confirm(`Excluir o quadro "${board.title}" e todo o seu conteúdo?`)) return
     mutate(async () => {
       await api(`/boards/${boardId}`, 'DELETE')
       navigate('/')
@@ -156,7 +156,7 @@ export function BoardPage() {
       <div className="mx-auto mt-16 max-w-md px-4 text-center">
         <ErrorText>{error}</ErrorText>
         <Link to="/" className="mt-4 inline-block text-sm font-medium text-indigo-600">
-          ← Back to boards
+          ← Voltar aos quadros
         </Link>
       </div>
     ) : (
@@ -176,7 +176,7 @@ export function BoardPage() {
         <div className="flex min-w-0 items-center gap-3">
           <Link
             to="/"
-            aria-label="Back to boards"
+            aria-label="Voltar aos quadros"
             className="rounded-md p-1 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">
@@ -190,7 +190,7 @@ export function BoardPage() {
           {editingTitle ? (
             <Input
               autoFocus
-              aria-label="Board title"
+              aria-label="Título do quadro"
               value={title}
               maxLength={100}
               onChange={(e) => setTitle(e.target.value)}
@@ -205,7 +205,7 @@ export function BoardPage() {
             <h1>
               <button
                 type="button"
-                title="Rename board"
+                title="Renomear quadro"
                 onClick={() => {
                   setTitle(board.title)
                   setEditingTitle(true)
@@ -223,18 +223,18 @@ export function BoardPage() {
             type="button"
             onClick={() => setShowMembers(true)}
             className="flex -space-x-2 rounded-full"
-            aria-label="Show members"
+            aria-label="Ver membros"
           >
             {board.members.slice(0, 5).map((m) => (
               <Avatar key={m.userId} name={m.user.name} id={m.userId} />
             ))}
           </button>
           <Button variant="secondary" onClick={() => setShowMembers(true)}>
-            {isOwner ? 'Share' : 'Members'}
+            {isOwner ? 'Compartilhar' : 'Membros'}
           </Button>
           {isOwner && (
             <Button variant="danger" onClick={deleteBoard}>
-              Delete board
+              Excluir quadro
             </Button>
           )}
         </div>

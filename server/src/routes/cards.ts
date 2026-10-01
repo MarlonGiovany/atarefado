@@ -26,7 +26,7 @@ cardsRouter.patch("/:cardId", async (req, res) => {
     const isMember = await prisma.boardMember.findUnique({
       where: { boardId_userId: { boardId, userId: data.assigneeId } },
     });
-    if (!isMember) throw new HttpError(400, "Assignee must be a board member");
+    if (!isMember) throw new HttpError(400, "O responsável precisa ser membro do quadro");
   }
 
   const card = await prisma.card.update({
@@ -52,7 +52,7 @@ cardsRouter.post("/:cardId/move", async (req, res) => {
   const fromBoard = await boardIdOfCard(cardId);
   await requireMember(fromBoard, userId);
   if ((await boardIdOfColumn(columnId)) !== fromBoard) {
-    throw new HttpError(400, "Cards can only move within the same board");
+    throw new HttpError(400, "Cards só podem ser movidos dentro do mesmo quadro");
   }
 
   const card = await prisma.card.update({

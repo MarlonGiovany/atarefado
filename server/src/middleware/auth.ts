@@ -18,7 +18,7 @@ export function signToken(userId: string) {
 export function verifyToken(token: string) {
   const payload = jwt.verify(token, env.JWT_SECRET);
   if (typeof payload === "string" || !payload.sub) {
-    throw new HttpError(401, "Invalid token");
+    throw new HttpError(401, "Token inválido");
   }
   return payload.sub;
 }
@@ -26,18 +26,18 @@ export function verifyToken(token: string) {
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header?.startsWith("Bearer ")) {
-    throw new HttpError(401, "Missing token");
+    throw new HttpError(401, "Token ausente");
   }
   try {
     req.userId = verifyToken(header.slice(7));
   } catch {
-    throw new HttpError(401, "Invalid or expired token");
+    throw new HttpError(401, "Sessão inválida ou expirada");
   }
   next();
 }
 
 /** Use after requireAuth: returns the authenticated user id. */
 export function currentUser(req: Request) {
-  if (!req.userId) throw new HttpError(401, "Not authenticated");
+  if (!req.userId) throw new HttpError(401, "Não autenticado");
   return req.userId;
 }

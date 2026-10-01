@@ -167,8 +167,8 @@ export function KanbanBoard({
           className="w-72 shrink-0 space-y-2 rounded-xl border-2 border-dashed border-slate-200 p-3"
         >
           <Input
-            aria-label="New column title"
-            placeholder="+ Add another column"
+            aria-label="Nome da nova coluna"
+            placeholder="+ Adicionar coluna"
             value={newColumn}
             maxLength={100}
             onChange={(e) => setNewColumn(e.target.value)}
@@ -176,7 +176,7 @@ export function KanbanBoard({
           />
           {newColumn.trim() && (
             <Button type="submit" className="w-full">
-              Add column
+              Adicionar coluna
             </Button>
           )}
         </form>

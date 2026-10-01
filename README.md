@@ -1,82 +1,92 @@
 # TaskFlow
 
-A collaborative Kanban board for teams: create boards, drag cards across columns, assign tasks to teammates and keep deadlines in sight.
+Gerenciador de tarefas colaborativo no estilo Kanban: crie quadros, arraste cards entre colunas, atribua tarefas para o time e acompanhe os prazos.
 
-> 🇧🇷 Gerenciador de tarefas colaborativo no estilo Kanban, feito com React, Express e Prisma.
+**Desenvolvido por Marlon Giovany.**
 
-## Features
+> 🇺🇸 A collaborative Kanban task manager built with React, Express and Prisma.
 
-- **Authentication**: sign up and log in with JWT, passwords hashed with bcrypt
-- **Boards**: create, rename and delete boards; each board starts with *To do / In progress / Done*
-- **Drag and drop**: reorder cards and move them between columns (mouse and keyboard)
-- **Cards**: title, description, due date (with *overdue* / *today* badges) and assignee
-- **Collaboration**: the owner invites members by email; members can leave, the owner can remove them
-- **Access control**: every endpoint checks board membership; non-members get `404` so board ids can't be probed
+## Funcionalidades
 
-## Tech stack
+- **Autenticação**: cadastro e login com JWT; senhas criptografadas com bcrypt
+- **Quadros**: criar, renomear e excluir; cada quadro novo já vem com *A fazer / Em andamento / Concluído*
+- **Arrastar e soltar**: reordene cards e mova entre colunas (mouse e teclado)
+- **Cards**: título, descrição, prazo (com selos de *Atrasado* e *Hoje*) e responsável
+- **Colaboração**: o dono convida membros por e-mail; membros podem sair e o dono pode removê-los
+- **Controle de acesso**: toda rota verifica se o usuário é membro do quadro; quem não é recebe `404`, então não dá para descobrir ids de quadros alheios
 
-| Layer | Tools |
+## Tecnologias
+
+| Camada | Ferramentas |
 |---|---|
-| Front end | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, dnd-kit |
-| Back end | Node.js, Express 5, TypeScript, Zod (validation), JWT |
-| Database | Prisma 7 ORM, SQLite (dev); swappable for PostgreSQL |
+| Front-end | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, dnd-kit |
+| Back-end | Node.js, Express 5, TypeScript, Zod (validação), JWT |
+| Banco de dados | Prisma 7 ORM, SQLite (desenvolvimento); pode ser trocado por PostgreSQL |
 
-## Getting started
+## Como rodar
 
-Requirements: Node.js 20+.
+Requisito: Node.js 20 ou superior.
 
 ```bash
 # 1. API
 cd server
 npm install
-cp .env.example .env        # then set JWT_SECRET to a long random string
-npx prisma migrate dev      # creates the database
+cp .env.example .env        # depois defina JWT_SECRET com uma string longa e aleatória
+npx prisma migrate dev      # cria o banco de dados
 npx prisma generate
-npm run db:seed             # optional: demo account and sample board
+npm run db:seed             # opcional: conta demo e quadro de exemplo
 npm run dev                 # http://localhost:3333
 
-# 2. Web app (in another terminal)
+# 2. App web (em outro terminal)
 cd client
 npm install
 npm run dev                 # http://localhost:5173
 ```
 
-**Demo account** (after seeding): `demo@taskflow.dev` / `demo12345`
+**Conta demo** (depois do seed): `demo@taskflow.dev` / `demo12345`
 
-## How card ordering works
+## Como funciona a ordenação dos cards
 
-Cards store a fractional `position`. When a card is dropped between two others, the client sends a value halfway between its neighbours (`(before + after) / 2`), so only the moved card is written; the rest of the list never needs renumbering.
+Cada card guarda uma `position` fracionária. Quando um card é solto entre outros dois, o front envia um valor no meio dos vizinhos (`(anterior + próximo) / 2`). Assim só o card movido é gravado no banco, sem precisar renumerar o resto da lista.
 
-## API overview
+## Visão geral da API
 
-All routes except auth require `Authorization: Bearer <token>`.
+Todas as rotas, exceto as de autenticação, exigem `Authorization: Bearer <token>`.
 
-| Method | Route | Description |
+| Método | Rota | Descrição |
 |---|---|---|
-| POST | `/api/auth/register` | Create account |
-| POST | `/api/auth/login` | Log in |
-| GET | `/api/auth/me` | Current user |
-| GET / POST | `/api/boards` | List / create boards |
-| GET / PATCH / DELETE | `/api/boards/:id` | Board with columns, cards and members |
-| POST | `/api/boards/:id/members` | Invite by email (owner) |
-| DELETE | `/api/boards/:id/members/:userId` | Remove member or leave |
-| POST | `/api/boards/:id/columns` | Add column |
-| PATCH / DELETE | `/api/columns/:id` | Rename / delete column |
-| POST | `/api/columns/:id/cards` | Add card |
-| PATCH / DELETE | `/api/cards/:id` | Edit / delete card |
-| POST | `/api/cards/:id/move` | Move card (column + position) |
+| POST | `/api/auth/register` | Criar conta |
+| POST | `/api/auth/login` | Entrar |
+| GET | `/api/auth/me` | Usuário logado |
+| GET / POST | `/api/boards` | Listar / criar quadros |
+| GET / PATCH / DELETE | `/api/boards/:id` | Quadro com colunas, cards e membros |
+| POST | `/api/boards/:id/members` | Convidar por e-mail (dono) |
+| DELETE | `/api/boards/:id/members/:userId` | Remover membro ou sair |
+| POST | `/api/boards/:id/columns` | Criar coluna |
+| PATCH / DELETE | `/api/columns/:id` | Renomear / excluir coluna |
+| POST | `/api/columns/:id/cards` | Criar card |
+| PATCH / DELETE | `/api/cards/:id` | Editar / excluir card |
+| POST | `/api/cards/:id/move` | Mover card (coluna + posição) |
 
-## Project structure
+## Estrutura do projeto
 
 ```
-client/   React app (pages, components/board, lib/api)
-server/   Express API (routes, middleware, lib) + Prisma schema, migrations and seed
+client/   App React (pages, components/board, lib/api)
+server/   API Express (routes, middleware, lib) + schema, migrations e seed do Prisma
 ```
 
-## Roadmap
+## Próximos passos
 
-- [ ] Real-time sync between users (Socket.IO)
-- [ ] Card comments and activity history
-- [ ] Automated tests (Vitest + Supertest) and GitHub Actions CI
-- [ ] Deploy (Vercel + Render) with PostgreSQL
-- [ ] Dark mode
+- [ ] Sincronização em tempo real entre usuários (Socket.IO)
+- [ ] Comentários e histórico de atividades nos cards
+- [ ] Testes automatizados (Vitest + Supertest) e CI com GitHub Actions
+- [ ] Deploy (Vercel + Render) com PostgreSQL
+- [ ] Modo escuro
+
+## Autor
+
+**Marlon Giovany**
+
+## Licença
+
+[MIT](LICENSE) © 2026 Marlon Giovany

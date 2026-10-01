@@ -40,19 +40,19 @@ export function MembersModal({ members, currentUserId, onInvite, onRemove, onClo
   }
 
   return (
-    <Modal title="Board members" onClose={onClose}>
+    <Modal title="Membros do quadro" onClose={onClose}>
       {isOwner && (
         <form onSubmit={handleInvite} className="mb-5 flex gap-2">
           <Input
             type="email"
             required
-            aria-label="Email to invite"
-            placeholder="teammate@email.com"
+            aria-label="E-mail para convidar"
+            placeholder="colega@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
           <Button type="submit" disabled={busy} className="shrink-0">
-            Invite
+            Convidar
           </Button>
         </form>
       )}
@@ -66,13 +66,13 @@ export function MembersModal({ members, currentUserId, onInvite, onRemove, onClo
               <Avatar name={m.user.name} id={m.userId} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-slate-900">
-                  {m.user.name} {isMe && <span className="text-slate-400">(you)</span>}
+                  {m.user.name} {isMe && <span className="text-slate-400">(você)</span>}
                 </p>
                 <p className="truncate text-xs text-slate-500">{m.user.email}</p>
               </div>
               {m.role === 'OWNER' ? (
                 <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
-                  Owner
+                  Dono
                 </span>
               ) : (
                 canRemove && (
@@ -82,7 +82,7 @@ export function MembersModal({ members, currentUserId, onInvite, onRemove, onClo
                     onClick={() => run(() => onRemove(m))}
                     className="text-red-600"
                   >
-                    {isMe ? 'Leave' : 'Remove'}
+                    {isMe ? 'Sair' : 'Remover'}
                   </Button>
                 )
               )}
@@ -91,7 +91,7 @@ export function MembersModal({ members, currentUserId, onInvite, onRemove, onClo
         })}
       </ul>
       {!isOwner && (
-        <p className="mt-3 text-xs text-slate-500">Only the board owner can invite people.</p>
+        <p className="mt-3 text-xs text-slate-500">Apenas o dono do quadro pode convidar pessoas.</p>
       )}
     </Modal>
   )

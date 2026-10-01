@@ -44,22 +44,22 @@ export function BoardsPage() {
     <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Your boards</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Seus quadros</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Boards you own or were invited to.
+            Quadros que você criou ou para os quais foi convidado.
           </p>
         </div>
         <form onSubmit={createBoard} className="flex w-full gap-2 sm:w-auto">
           <Input
-            aria-label="New board title"
-            placeholder="New board title"
+            aria-label="Nome do novo quadro"
+            placeholder="Nome do novo quadro"
             value={title}
             maxLength={100}
             onChange={(e) => setTitle(e.target.value)}
             className="sm:w-64"
           />
           <Button type="submit" disabled={creating || !title.trim()} className="shrink-0">
-            Create board
+            Criar quadro
           </Button>
         </form>
       </div>
@@ -74,9 +74,9 @@ export function BoardsPage() {
         </div>
       ) : boards?.length === 0 ? (
         <div className="mt-10 rounded-2xl border-2 border-dashed border-slate-200 px-6 py-16 text-center">
-          <h2 className="font-semibold text-slate-900">No boards yet</h2>
+          <h2 className="font-semibold text-slate-900">Nenhum quadro ainda</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Create your first board above to start organising tasks.
+            Crie seu primeiro quadro acima para começar a organizar as tarefas.
           </p>
         </div>
       ) : (
@@ -93,9 +93,9 @@ export function BoardsPage() {
                     {board.title}
                   </h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    {board._count.members} {board._count.members === 1 ? 'member' : 'members'}
+                    {board._count.members} {board._count.members === 1 ? 'membro' : 'membros'}
                     {' · '}
-                    created {new Date(board.createdAt).toLocaleDateString()}
+                    criado em {new Date(board.createdAt).toLocaleDateString('pt-BR')}
                   </p>
                 </div>
               </Link>

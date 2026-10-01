@@ -55,19 +55,19 @@ export function CardModal({ card, columnTitle, members, onSave, onDelete, onClos
   }
 
   function handleDelete() {
-    if (confirm(`Delete "${card.title}"? This can't be undone.`)) {
+    if (confirm(`Excluir "${card.title}"? Essa ação não pode ser desfeita.`)) {
       run(() => onDelete(card.id))
     }
   }
 
   return (
-    <Modal title="Edit card" onClose={onClose}>
+    <Modal title="Editar card" onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <p className="text-xs text-slate-500">
-          In column <span className="font-medium text-slate-700">{columnTitle}</span>
+          Na coluna <span className="font-medium text-slate-700">{columnTitle}</span>
         </p>
         <div>
-          <Label htmlFor="card-title">Title</Label>
+          <Label htmlFor="card-title">Título</Label>
           <Input
             id="card-title"
             required
@@ -77,12 +77,12 @@ export function CardModal({ card, columnTitle, members, onSave, onDelete, onClos
           />
         </div>
         <div>
-          <Label htmlFor="card-description">Description</Label>
+          <Label htmlFor="card-description">Descrição</Label>
           <textarea
             id="card-description"
             rows={5}
             maxLength={5000}
-            placeholder="Add more details…"
+            placeholder="Adicione mais detalhes…"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full resize-y rounded-lg border-0 px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600 focus:outline-none"
@@ -90,7 +90,7 @@ export function CardModal({ card, columnTitle, members, onSave, onDelete, onClos
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="card-due">Due date</Label>
+            <Label htmlFor="card-due">Prazo</Label>
             <Input
               id="card-due"
               type="date"
@@ -99,14 +99,14 @@ export function CardModal({ card, columnTitle, members, onSave, onDelete, onClos
             />
           </div>
           <div>
-            <Label htmlFor="card-assignee">Assignee</Label>
+            <Label htmlFor="card-assignee">Responsável</Label>
             <select
               id="card-assignee"
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
               className="w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-300 focus:ring-2 focus:ring-indigo-600 focus:outline-none"
             >
-              <option value="">Unassigned</option>
+              <option value="">Ninguém</option>
               {members.map((m) => (
                 <option key={m.userId} value={m.userId}>
                   {m.user.name}
@@ -120,14 +120,14 @@ export function CardModal({ card, columnTitle, members, onSave, onDelete, onClos
 
         <div className="flex items-center justify-between gap-2 pt-2">
           <Button type="button" variant="danger" onClick={handleDelete} disabled={busy}>
-            Delete
+            Excluir
           </Button>
           <div className="flex gap-2">
             <Button type="button" variant="secondary" onClick={onClose}>
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" disabled={busy || !title.trim()}>
-              Save
+              Salvar
             </Button>
           </div>
         </div>

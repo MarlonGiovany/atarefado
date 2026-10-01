@@ -13,9 +13,9 @@ export function errorHandler(
     return;
   }
   if (err instanceof ZodError) {
-    res.status(400).json({ error: "Validation failed", issues: err.issues });
+    res.status(400).json({ error: "Dados inválidos", issues: err.issues });
     return;
   }
   console.error(err);
-  res.status(500).json({ error: "Internal server error" });
+  res.status(500).json({ error: "Erro interno do servidor" });
 }

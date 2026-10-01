@@ -42,7 +42,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Fechar"
             className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="size-5">

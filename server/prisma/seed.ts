@@ -10,9 +10,9 @@ import { prisma } from "../src/lib/prisma.js";
 const DEMO_PASSWORD = "demo12345";
 
 const users = [
-  { name: "Demo User", email: "demo@taskflow.dev" },
-  { name: "Alex Rivera", email: "alex@taskflow.dev" },
-  { name: "Sam Lee", email: "sam@taskflow.dev" },
+  { name: "Usuário Demo", email: "demo@taskflow.dev" },
+  { name: "Ana Souza", email: "ana@taskflow.dev" },
+  { name: "Pedro Lima", email: "pedro@taskflow.dev" },
 ];
 
 const daysFromNow = (days: number) => {
@@ -26,34 +26,34 @@ type SeedCard = { title: string; description?: string; due?: number; assignee?: 
 
 const columns: { title: string; cards: SeedCard[] }[] = [
   {
-    title: "To do",
+    title: "A fazer",
     cards: [
-      { title: "Write README with screenshots", due: 5, assignee: 0 },
-      { title: "Add dark mode", description: "Respect prefers-color-scheme and add a toggle." },
-      { title: "Set up CI with GitHub Actions", due: 10, assignee: 1 },
+      { title: "Escrever README com prints", due: 5, assignee: 0 },
+      { title: "Adicionar modo escuro", description: "Respeitar o tema do sistema e ter um botão para alternar." },
+      { title: "Configurar CI com GitHub Actions", due: 10, assignee: 1 },
     ],
   },
   {
-    title: "In progress",
+    title: "Em andamento",
     cards: [
       {
-        title: "Real-time updates with Socket.IO",
-        description: "Broadcast card moves to everyone viewing the board.",
+        title: "Atualizações em tempo real com Socket.IO",
+        description: "Enviar a movimentação dos cards para todos que estão vendo o quadro.",
         due: 2,
         assignee: 0,
       },
-      { title: "Card comments", assignee: 2 },
+      { title: "Comentários nos cards", assignee: 2 },
     ],
   },
   {
-    title: "Review",
-    cards: [{ title: "Drag and drop between columns", due: -1, assignee: 1 }],
+    title: "Em revisão",
+    cards: [{ title: "Arrastar e soltar entre colunas", due: -1, assignee: 1 }],
   },
   {
-    title: "Done",
+    title: "Concluído",
     cards: [
-      { title: "JWT authentication", assignee: 0 },
-      { title: "Board sharing and roles", assignee: 2 },
+      { title: "Autenticação com JWT", assignee: 0 },
+      { title: "Compartilhamento de quadros e permissões", assignee: 2 },
     ],
   },
 ];
@@ -74,7 +74,7 @@ async function main() {
 
   await prisma.board.create({
     data: {
-      title: "Product launch",
+      title: "Lançamento do produto",
       members: {
         create: [
           { userId: owner.id, role: "OWNER" },
@@ -101,10 +101,10 @@ async function main() {
 
   await prisma.board.create({
     data: {
-      title: "Personal",
+      title: "Pessoal",
       members: { create: { userId: owner.id, role: "OWNER" } },
       columns: {
-        create: ["To do", "Doing", "Done"].map((title, i) => ({ title, position: i + 1 })),
+        create: ["A fazer", "Fazendo", "Feito"].map((title, i) => ({ title, position: i + 1 })),
       },
     },
   });

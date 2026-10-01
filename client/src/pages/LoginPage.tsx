@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../auth/useAuth'
 import { errorMessage } from '../lib/api'
-import { Button, ErrorText, Input, Label, Logo } from '../components/ui'
+import { Button, Credit, ErrorText, Input, Label, Logo } from '../components/ui'
 
 type Mode = 'login' | 'register'
 
@@ -42,39 +42,42 @@ export function LoginPage() {
         </span>
         <div>
           <h1 className="text-4xl leading-tight font-bold">
-            Plan, track and ship work together.
+            Planeje, acompanhe e entregue em equipe.
           </h1>
           <p className="mt-4 max-w-md text-indigo-100">
-            Kanban boards for your team: drag cards across columns, assign tasks and keep
-            every deadline in sight.
+            Quadros Kanban para o seu time: arraste cards entre colunas, atribua tarefas e
+            mantenha todos os prazos sob controle.
           </p>
         </div>
-        <p className="text-sm text-indigo-200">Built with React, Express and Prisma.</p>
+        <p className="text-sm text-indigo-200">
+          Desenvolvido por <span className="font-semibold text-white">Marlon Giovany</span>
+          {' · '}React, Express e Prisma
+        </p>
       </section>
 
-      <section className="flex items-center justify-center px-4 py-12">
+      <section className="flex flex-col items-center justify-center px-4 py-12">
         <div className="w-full max-w-sm">
           <div className="mb-8 lg:hidden">
             <Logo />
           </div>
           <h2 className="text-2xl font-bold text-slate-900">
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+            {mode === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+            {mode === 'login' ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
             <button
               type="button"
               onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
-              {mode === 'login' ? 'Sign up' : 'Log in'}
+              {mode === 'login' ? 'Cadastre-se' : 'Entrar'}
             </button>
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-4">
             {mode === 'register' && (
               <div>
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Nome</Label>
                 <Input
                   id="name"
                   autoComplete="name"
@@ -85,7 +88,7 @@ export function LoginPage() {
               </div>
             )}
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
@@ -96,7 +99,7 @@ export function LoginPage() {
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -107,14 +110,17 @@ export function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
               {mode === 'register' && (
-                <p className="mt-1 text-xs text-slate-500">At least 8 characters.</p>
+                <p className="mt-1 text-xs text-slate-500">No mínimo 8 caracteres.</p>
               )}
             </div>
             <ErrorText>{error}</ErrorText>
             <Button type="submit" disabled={submitting} className="w-full">
-              {submitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}
+              {submitting ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Criar conta'}
             </Button>
           </form>
+        </div>
+        <div className="mt-12 lg:hidden">
+          <Credit />
         </div>
       </section>
     </div>

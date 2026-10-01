@@ -1,6 +1,7 @@
 {
   "name": "taskflow-server",
   "version": "1.0.0",
+  "author": "Marlon Giovany",
   "private": true,
   "type": "module",
   "scripts": {

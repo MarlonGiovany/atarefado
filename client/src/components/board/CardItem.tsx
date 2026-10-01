@@ -29,7 +29,7 @@ export function CardContent({ card, dragging = false }: { card: Card; dragging?:
             <span
               className={`rounded-md px-1.5 py-0.5 text-xs font-medium ring-1 ${dueStyles[status]}`}
             >
-              {status === 'overdue' ? 'Overdue · ' : status === 'today' ? 'Today · ' : ''}
+              {status === 'overdue' ? 'Atrasado · ' : status === 'today' ? 'Hoje · ' : ''}
               {formatDue(card.dueDate)}
             </span>
           ) : (

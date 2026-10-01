@@ -9,14 +9,14 @@ export async function requireMember(boardId: string, userId: string) {
   const membership = await prisma.boardMember.findUnique({
     where: { boardId_userId: { boardId, userId } },
   });
-  if (!membership) throw new HttpError(404, "Board not found");
+  if (!membership) throw new HttpError(404, "Quadro não encontrado");
   return membership;
 }
 
 export async function requireOwner(boardId: string, userId: string) {
   const membership = await requireMember(boardId, userId);
   if (membership.role !== "OWNER") {
-    throw new HttpError(403, "Only the board owner can do this");
+    throw new HttpError(403, "Apenas o dono do quadro pode fazer isso");
   }
   return membership;
 }
@@ -26,7 +26,7 @@ export async function boardIdOfColumn(columnId: string) {
     where: { id: columnId },
     select: { boardId: true },
   });
-  if (!column) throw new HttpError(404, "Column not found");
+  if (!column) throw new HttpError(404, "Coluna não encontrada");
   return column.boardId;
 }
 
@@ -35,6 +35,6 @@ export async function boardIdOfCard(cardId: string) {
     where: { id: cardId },
     select: { column: { select: { boardId: true } } },
   });
-  if (!card) throw new HttpError(404, "Card not found");
+  if (!card) throw new HttpError(404, "Card não encontrado");
   return card.column.boardId;
 }

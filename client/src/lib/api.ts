@@ -62,11 +62,11 @@ export async function api<T = void>(
   const data = text ? JSON.parse(text) : undefined
 
   if (!res.ok) {
-    throw new ApiError(res.status, data?.error ?? `Request failed (${res.status})`)
+    throw new ApiError(res.status, data?.error ?? `Falha na requisição (${res.status})`)
   }
   return data as T
 }
 
 export function errorMessage(err: unknown) {
-  return err instanceof Error ? err.message : 'Something went wrong'
+  return err instanceof Error ? err.message : 'Algo deu errado'
 }
