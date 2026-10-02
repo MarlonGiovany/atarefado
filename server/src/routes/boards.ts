@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import type { Prisma } from "../generated/prisma/client.js";
 import { prisma } from "../lib/prisma.js";
 import { HttpError } from "../lib/http-error.js";
 import { requireMember, requireOwner } from "../lib/access.js";
@@ -76,6 +77,81 @@ boardsRouter.get("/:boardId/days", async (req, res) => {
   });
   const days = Object.fromEntries(groups.map((g) => [dateToDay(g.date), g._count._all]));
   res.json({ days });
+});
+
+// --- Pending tasks (carry-over) ---
+
+/**
+ * Cards from days before `before` that aren't finished. By Kanban convention the
+ * board's last column holds finished work; a board with a single column has no
+ * "done" column, so every earlier card counts as pending.
+ */
+async function pendingCardsWhere(
+  db: Pick<typeof prisma, "column">,
+  boardId: string,
+  before: string,
+): Promise<Prisma.CardWhereInput> {
+  const columns = await db.column.findMany({
+    where: { boardId },
+    orderBy: { position: "asc" },
+    select: { id: true },
+  });
+  const doneColumn = columns.length > 1 ? columns[columns.length - 1] : undefined;
+  return {
+    column: { boardId },
+    date: { lt: dayToDate(before) },
+    ...(doneColumn && { columnId: { not: doneColumn.id } }),
+  };
+}
+
+boardsRouter.get("/:boardId/pending", async (req, res) => {
+  const { boardId } = req.params;
+  await requireMember(boardId, currentUser(req));
+  const { before } = z.object({ before: dayString }).parse(req.query);
+  const count = await prisma.card.count({ where: await pendingCardsWhere(prisma, boardId, before) });
+  res.json({ count });
+});
+
+/** Moves every pending card to `to`, returning their previous days so the client can undo. */
+boardsRouter.post("/:boardId/pending/move", async (req, res) => {
+  const { boardId } = req.params;
+  await requireMember(boardId, currentUser(req));
+  const { to } = z.object({ to: dayString }).parse(req.body);
+
+  const moved = await prisma.$transaction(async (tx) => {
+    const cards = await tx.card.findMany({
+      where: await pendingCardsWhere(tx, boardId, to),
+      select: { id: true, date: true },
+    });
+    await tx.card.updateMany({
+      where: { id: { in: cards.map((c) => c.id) } },
+      data: { date: dayToDate(to) },
+    });
+    return cards.map((c) => ({ id: c.id, date: dateToDay(c.date) }));
+  });
+  res.json({ moved });
+});
+
+/** Sets the day of several cards at once (used to undo a carry-over). */
+boardsRouter.post("/:boardId/cards/reschedule", async (req, res) => {
+  const { boardId } = req.params;
+  await requireMember(boardId, currentUser(req));
+  const { cards } = z
+    .object({
+      cards: z.array(z.object({ id: z.string(), date: dayString })).min(1).max(500),
+    })
+    .parse(req.body);
+
+  const ids = [...new Set(cards.map((c) => c.id))];
+  const found = await prisma.card.count({ where: { id: { in: ids }, column: { boardId } } });
+  if (found !== ids.length) throw new HttpError(404, "Card não encontrado");
+
+  await prisma.$transaction(
+    cards.map((c) =>
+      prisma.card.update({ where: { id: c.id }, data: { date: dayToDate(c.date) } }),
+    ),
+  );
+  res.json({ updated: cards.length });
 });
 
 boardsRouter.patch("/:boardId", async (req, res) => {

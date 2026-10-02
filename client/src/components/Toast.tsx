@@ -1,10 +1,5 @@
 import { useEffect, useRef } from 'react'
-
-export type Notice = {
-  id: number
-  message: string
-  action?: { label: string; onClick: () => void }
-}
+import type { Notice } from '../lib/notice'
 
 /** Short-lived message at the bottom of the screen. Render with key={notice.id}. */
 export function Toast({ notice, onClose }: { notice: Notice; onClose: () => void }) {
@@ -13,10 +8,12 @@ export function Toast({ notice, onClose }: { notice: Notice; onClose: () => void
     onCloseRef.current = onClose
   })
 
+  // Messages with an action (e.g. "Desfazer") stay longer so there's time to use it
+  const duration = notice.action ? 10_000 : 5_000
   useEffect(() => {
-    const timer = setTimeout(() => onCloseRef.current(), 5000)
+    const timer = setTimeout(() => onCloseRef.current(), duration)
     return () => clearTimeout(timer)
-  }, [])
+  }, [duration])
 
   return (
     <div

@@ -14,6 +14,7 @@ Gerenciador de tarefas colaborativo no estilo Kanban: crie quadros, organize as 
   - Seletor com a semana, a quantidade de tarefas por dia, setas de dia anterior/próximo e calendário para pular para qualquer data
   - Botão **Hoje** para voltar rapidamente ao dia atual
   - O dia escolhido fica na URL (`?dia=2026-10-01`), então recarregar a página ou compartilhar o link mantém a data
+- **Trazer pendentes para hoje**: tarefas de dias anteriores que ainda não chegaram à última coluna (ex.: "Concluído") podem ser trazidas para hoje com um clique, mantendo a coluna de cada uma; dá para desfazer logo em seguida
 - **Arrastar e soltar**: reordene cards e mova entre colunas (mouse e teclado)
 - **Cards**: título, descrição, data e responsável; mudar a data move o card para outro dia
 - **Exclusão segura**: cards, colunas e quadros só são excluídos depois de uma confirmação
@@ -54,6 +55,8 @@ npm run dev                 # http://localhost:5173
 
 Cada card tem uma `date`: o dia a que a tarefa pertence. Ela trafega na API como `AAAA-MM-DD` e é gravada como meia-noite UTC, então representa o mesmo dia do calendário em qualquer fuso horário. O "hoje" vem do relógio do próprio usuário, e cards novos são criados no dia que estiver selecionado na tela.
 
+Uma tarefa é **pendente** quando é de um dia anterior e não está na última coluna do quadro, que por convenção do Kanban guarda o que foi concluído. Num quadro com uma só coluna, todas as tarefas de dias anteriores contam como pendentes.
+
 ## Como funciona a ordenação dos cards
 
 Cada card guarda uma `position` fracionária. Quando um card é solto entre outros dois, o front envia um valor no meio dos vizinhos (`(anterior + próximo) / 2`). Assim só o card movido é gravado no banco, sem precisar renumerar o resto da lista.
@@ -71,6 +74,9 @@ Todas as rotas, exceto as de autenticação, exigem `Authorization: Bearer <toke
 | GET | `/api/boards/:id?date=AAAA-MM-DD` | Quadro com colunas, membros e os cards do dia |
 | PATCH / DELETE | `/api/boards/:id` | Renomear / excluir quadro (excluir: dono) |
 | GET | `/api/boards/:id/days?from=…&to=…` | Quantidade de cards por dia no intervalo |
+| GET | `/api/boards/:id/pending?before=AAAA-MM-DD` | Quantidade de tarefas pendentes antes do dia |
+| POST | `/api/boards/:id/pending/move` | Traz as pendentes para o dia `to`; devolve as datas originais |
+| POST | `/api/boards/:id/cards/reschedule` | Muda a data de vários cards de uma vez (usado no "Desfazer") |
 | POST | `/api/boards/:id/members` | Convidar por e-mail (dono) |
 | DELETE | `/api/boards/:id/members/:userId` | Remover membro ou sair |
 | POST | `/api/boards/:id/columns` | Criar coluna |

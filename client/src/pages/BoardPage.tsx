@@ -9,9 +9,11 @@ import { CardModal } from '../components/board/CardModal'
 import type { CardChanges } from '../components/board/CardModal'
 import { DateBar } from '../components/board/DateBar'
 import { MembersModal } from '../components/board/MembersModal'
+import { PendingBanner } from '../components/board/PendingBanner'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Toast } from '../components/Toast'
-import type { Notice } from '../components/Toast'
+import { makeNotice } from '../lib/notice'
+import type { Notice } from '../lib/notice'
 import { Avatar, Button, ErrorText, Input, Spinner } from '../components/ui'
 
 type ConfirmRequest = {
@@ -41,6 +43,11 @@ export function BoardPage() {
   const [loadedDay, setLoadedDay] = useState<string | null>(null)
   const [weekCounts, setWeekCounts] = useState<Record<string, number>>({})
   const [countsVersion, setCountsVersion] = useState(0)
+  // Bumped to refetch the selected day from the server (e.g. after a carry-over)
+  const [boardVersion, setBoardVersion] = useState(0)
+  // Unfinished cards from days before today; tagged with the day it was counted for
+  const [pending, setPending] = useState<{ day: string; count: number } | null>(null)
+  const [carrying, setCarrying] = useState(false)
   const [error, setError] = useState('')
   const [openCardId, setOpenCardId] = useState<string | null>(null)
   const [showMembers, setShowMembers] = useState(false)
@@ -66,7 +73,7 @@ export function BoardPage() {
     return () => {
       active = false
     }
-  }, [boardId, day])
+  }, [boardId, day, boardVersion])
 
   useEffect(() => {
     let active = true
@@ -84,6 +91,23 @@ export function BoardPage() {
       active = false
     }
   }, [boardId, weekStart, weekEnd, countsVersion])
+
+  // Only today offers to bring unfinished work forward
+  useEffect(() => {
+    if (day !== today) return
+    let active = true
+    api<{ count: number }>(`/boards/${boardId}/pending?before=${today}`).then(
+      ({ count }) => {
+        if (active) setPending({ day: today, count })
+      },
+      () => {
+        /* the banner is optional; skip it if the count fails */
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [boardId, day, today, countsVersion])
 
   async function reload() {
     try {
@@ -130,6 +154,8 @@ export function BoardPage() {
     mutate(async () => {
       const { column } = await api<{ column: Column }>(`/boards/${boardId}/columns`, 'POST', { title })
       setColumns((cols) => [...cols, column])
+      // The last column counts as "done", so the pending count may change
+      setCountsVersion((v) => v + 1)
     })
 
   const renameColumn = (columnId: string, title: string) =>
@@ -179,12 +205,13 @@ export function BoardPage() {
     // Rescheduled to another day: it leaves this view
     removeCard(card.id)
     setCountsVersion((v) => v + 1)
-    setNotice({
-      id: Date.now(),
+    setNotice(
       // formatShortDay already ends with the month abbreviation's dot ("3 de out.")
-      message: `Card movido para ${formatShortDay(cardDay)}`,
-      action: { label: 'Ver dia', onClick: () => selectDay(cardDay) },
-    })
+      makeNotice(`Card movido para ${formatShortDay(cardDay)}`, {
+        label: 'Ver dia',
+        onClick: () => selectDay(cardDay),
+      }),
+    )
   }
 
   const requestDeleteCard = (card: Card) =>
@@ -196,9 +223,53 @@ export function BoardPage() {
         await api(`/cards/${card.id}`, 'DELETE')
         removeCard(card.id)
         setOpenCardId((id) => (id === card.id ? null : id))
-        setNotice({ id: Date.now(), message: 'Card excluído.' })
+        setNotice(makeNotice('Card excluído.'))
       },
     })
+
+  // --- Pending tasks ---
+
+  type MovedCard = { id: string; date: string }
+
+  async function carryOver() {
+    setCarrying(true)
+    try {
+      const { moved } = await api<{ moved: MovedCard[] }>(
+        `/boards/${boardId}/pending/move`,
+        'POST',
+        { to: today },
+      )
+      setPending({ day: today, count: 0 })
+      setBoardVersion((v) => v + 1)
+      setCountsVersion((v) => v + 1)
+      if (moved.length > 0) {
+        setNotice(
+          makeNotice(
+            moved.length === 1
+              ? '1 tarefa trazida para hoje'
+              : `${moved.length} tarefas trazidas para hoje`,
+            { label: 'Desfazer', onClick: () => undoCarryOver(moved) },
+          ),
+        )
+      }
+    } catch (err) {
+      setError(errorMessage(err))
+    } finally {
+      setCarrying(false)
+    }
+  }
+
+  async function undoCarryOver(moved: MovedCard[]) {
+    try {
+      // `moved` holds each card's original day
+      await api(`/boards/${boardId}/cards/reschedule`, 'POST', { cards: moved })
+      setBoardVersion((v) => v + 1)
+      setCountsVersion((v) => v + 1)
+      setNotice(makeNotice('Tarefas devolvidas aos dias de origem'))
+    } catch (err) {
+      setError(errorMessage(err))
+    }
+  }
 
   // --- Board & members ---
 
@@ -342,6 +413,15 @@ export function BoardPage() {
       </div>
 
       <DateBar day={day} today={today} counts={counts} onChange={selectDay} />
+
+      {day === today && pending?.day === today && pending.count > 0 && !isLoadingDay && (
+        <PendingBanner
+          count={pending.count}
+          doneColumnTitle={columns.length > 1 ? columns[columns.length - 1].title : null}
+          busy={carrying}
+          onCarryOver={carryOver}
+        />
+      )}
 
       {error && (
         <div className="px-4 pb-3 sm:px-6">
