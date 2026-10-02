@@ -11,7 +11,10 @@ model User {
   id           String        @id @default(cuid())
   name         String
   email        String        @unique
-  passwordHash String
+  // Null for accounts that only sign in with Google
+  passwordHash String?
+  // Google account id ("sub" claim); set once the user signs in with Google
+  googleId     String?       @unique
   createdAt    DateTime      @default(now())
   memberships  BoardMember[]
   assigned     Card[]        @relation("CardAssignee")

@@ -64,6 +64,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [handleAuth],
   )
 
+  const loginWithGoogle = useCallback(
+    async (credential: string) => {
+      handleAuth(await api<AuthResponse>('/auth/google', 'POST', { credential }))
+    },
+    [handleAuth],
+  )
+
   const register = useCallback(
     async (name: string, email: string, password: string) => {
       handleAuth(
@@ -87,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         offline: status === 'offline',
         retry,
         login,
+        loginWithGoogle,
         register,
         logout,
       }}

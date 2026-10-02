@@ -8,6 +8,8 @@ export type AuthContextValue = {
   offline: boolean
   retry: () => void
   login: (email: string, password: string) => Promise<void>
+  /** Signs in with the ID token from Google's button */
+  loginWithGoogle: (credential: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
 }

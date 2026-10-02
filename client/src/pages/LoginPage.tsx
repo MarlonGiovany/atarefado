@@ -2,12 +2,13 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../auth/useAuth'
 import { errorMessage } from '../lib/api'
+import { GoogleSignInButton } from '../components/GoogleSignInButton'
 import { Button, Credit, ErrorText, Input, Label, Logo } from '../components/ui'
 
 type Mode = 'login' | 'register'
 
 export function LoginPage() {
-  const { login, register } = useAuth()
+  const { login, loginWithGoogle, register } = useAuth()
   const [mode, setMode] = useState<Mode>('login')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -22,6 +23,17 @@ export function LoginPage() {
     try {
       if (mode === 'login') await login(email, password)
       else await register(name, email, password)
+    } catch (err) {
+      setError(errorMessage(err))
+      setSubmitting(false)
+    }
+  }
+
+  async function handleGoogle(credential: string) {
+    setError('')
+    setSubmitting(true)
+    try {
+      await loginWithGoogle(credential)
     } catch (err) {
       setError(errorMessage(err))
       setSubmitting(false)
@@ -118,6 +130,8 @@ export function LoginPage() {
               {submitting ? 'Aguarde…' : mode === 'login' ? 'Entrar' : 'Criar conta'}
             </Button>
           </form>
+          {/* Works for both modes: a first Google sign-in creates the account */}
+          <GoogleSignInButton onCredential={handleGoogle} onError={setError} />
         </div>
         <div className="mt-12 lg:hidden">
           <Credit />
