@@ -1,0 +1,14 @@
+{
+  "name": "atarefado",
+  "private": true,
+  "description": "Atarefado: gerenciador de tarefas colaborativo no estilo Kanban. Desenvolvido por Marlon Giovany.",
+  "author": "Marlon Giovany",
+  "license": "MIT",
+  "scripts": {
+    "build": "npm ci --prefix client --include=dev && npm run build --prefix client && npm ci --prefix server --include=dev && npm run build --prefix server",
+    "start": "npm start --prefix server"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

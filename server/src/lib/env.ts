@@ -17,6 +17,14 @@ const schema = z
     CLIENT_URL: z.url().default("http://localhost:5173"),
     // Set when running behind a reverse proxy (e.g. "1"), so rate limits see the real client IP
     TRUST_PROXY: optional,
+    // Serve the built front-end (client/dist) from this server, so app and API share
+    // one origin. Defaults to on in production, off in development (Vite serves it).
+    SERVE_CLIENT: z
+      .enum(["true", "false"])
+      .optional()
+      .transform((value) => (value === undefined ? undefined : value === "true")),
+    // Path to the built front-end, relative to the server folder
+    CLIENT_DIST: z.string().default("../client/dist"),
     // OAuth client id from Google Cloud Console; empty disables "Sign in with Google"
     GOOGLE_CLIENT_ID: optional,
     // SMTP for password reset e-mails. Without SMTP_HOST (development only),
@@ -43,6 +51,7 @@ const schema = z
 
 export const env = schema.parse(process.env);
 export const isProduction = env.NODE_ENV === "production";
+export const serveClient = env.SERVE_CLIENT ?? isProduction;
 
 /** Express "trust proxy" value: a hop count, true/false, or a named preset. */
 export function trustProxySetting(): number | boolean | string | undefined {

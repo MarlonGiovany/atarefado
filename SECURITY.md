@@ -85,6 +85,9 @@ Em desenvolvimento os limites por IP são 10 vezes maiores (testes locais saem t
 - O responsável por um card precisa ser membro do quadro; cards não podem ser movidos para colunas de outro quadro; operações em lote conferem que todos os cards pertencem ao quadro.
 - As respostas nunca incluem `passwordHash`, `googleId` ou tokens. Membros de um quadro veem nome e e-mail uns dos outros, por design (convites são por e-mail).
 
+### Dependências
+`npm audit` sem vulnerabilidades no front-end e na API. As 4 de gravidade alta que a ferramenta de linha de comando do Prisma 7.10 trazia (`deepmerge-ts` e `mysql2`, usadas só pelo CLI, nunca nas requisições) foram eliminadas com `overrides` para as versões corrigidas, mantendo o Prisma 7 estável. Ao atualizar o Prisma, rode `npm audit` de novo e remova os `overrides` que não forem mais necessários.
+
 ### Outras proteções
 - Cabeçalhos de segurança com `helmet` (CSP para as respostas da API, `nosniff`, bloqueio de *framing*, HSTS em HTTPS, sem `X-Powered-By`).
 - CORS restrito à origem do front-end, com credenciais.
@@ -101,7 +104,9 @@ Em desenvolvimento os limites por IP são 10 vezes maiores (testes locais saem t
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Servidor de e-mail (obrigatório) |
 | `GOOGLE_CLIENT_ID` | Client ID do Google |
 
-No Google Cloud Console, acrescente o domínio de produção (com `https://`) em **Origens JavaScript autorizadas**. Sirva o front-end e a API pelo **mesmo domínio** (ex.: a API em `/api` por proxy reverso), para que o cookie `SameSite=Lax` e a checagem de origem funcionem sem ajustes. Configure no servidor estático do front-end os cabeçalhos `Content-Security-Policy`, `Referrer-Policy: strict-origin-when-cross-origin` e HSTS.
+No Google Cloud Console, acrescente o domínio de produção (com `https://`) em **Origens JavaScript autorizadas**.
+
+Em produção a própria API entrega o front-end compilado (`SERVE_CLIENT`, ativo por padrão), então site e API ficam no **mesmo domínio** e o cookie `SameSite=Lax` e a checagem de origem funcionam sem ajustes. Os cabeçalhos de segurança valem também para as páginas: CSP liberando só os próprios arquivos e o necessário para o login do Google e as fontes do Google, `Cross-Origin-Opener-Policy: same-origin-allow-popups` (exigido pelo pop-up do Google), HSTS, `upgrade-insecure-requests` e `Referrer-Policy: no-referrer`.
 
 ## Riscos residuais e próximos passos
 

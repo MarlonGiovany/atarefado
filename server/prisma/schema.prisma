@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -72,7 +72,7 @@ model Board {
   columns   Column[]
 }
 
-// role: "OWNER" | "MEMBER" (SQLite has no native enums)
+// role: "OWNER" | "MEMBER" (validated in code)
 model BoardMember {
   boardId String
   userId  String
