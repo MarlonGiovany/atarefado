@@ -120,8 +120,17 @@ npm test                 # tudo
 npm run test:api         # 45 verificações: rotas, quadros, cards, datas, controle de acesso
 npm run test:security    # 68 verificações: cookies, CSRF, logout, enumeração, bloqueio, política de senhas,
                          #   recuperação de senha, troca de senha, IDOR
-npm run test:google      # 32 verificações: vínculo Google, conta só-Google, migração de hash,
+npm run test:google      # 40 verificações: vínculo Google, conta só-Google, migração de hash,
+                         #   senha nunca em texto puro, expiração de sessão e de token de recuperação,
                          #   tokens guardados só como hash, token do Google forjado
 ```
+
+## Dados sensíveis e configurações
+
+- Nenhuma senha, chave de API, *client secret*, token, credencial de banco ou SMTP no código ou no histórico do Git; `.env`, banco e `.mail-outbox/` estão no `.gitignore`.
+- A única senha escrita no código é a da **conta demo pública** (`server/prisma/seed.ts`), documentada no README de propósito. Ela só existe no banco de desenvolvimento.
+- O `GOOGLE_CLIENT_ID` não é secreto (aparece na página), mas fica em variável de ambiente.
+- Logs registram só erros inesperados (pilha), nunca corpo de requisição, senha, token ou dados pessoais.
+- O app não tem área administrativa; o papel "dono do quadro" é verificado no servidor em cada rota, e esconder botões no front-end é só conveniência.
 
 Os testes criam usuários e quadros de teste no banco de desenvolvimento (o de Google apaga os seus ao terminar).

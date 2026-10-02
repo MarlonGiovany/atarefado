@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import nodemailer from "nodemailer";
@@ -26,7 +27,8 @@ export async function sendMail(mail: Mail) {
   if (isProduction) throw new Error("SMTP is not configured");
 
   await mkdir(DEV_OUTBOX, { recursive: true });
-  const name = `${Date.now()}-${mail.to.replace(/[^a-z0-9]+/gi, "-")}`;
+  // Random file name: the logged path carries no personal data
+  const name = `${Date.now()}-${randomBytes(4).toString("hex")}`;
   const saved = { from: env.MAIL_FROM, date: new Date().toISOString(), ...mail };
   await writeFile(path.join(DEV_OUTBOX, `${name}.json`), JSON.stringify(saved, null, 2));
   await writeFile(path.join(DEV_OUTBOX, `${name}.html`), mail.html);

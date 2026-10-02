@@ -169,6 +169,54 @@ try {
   const me = async (cookie: string) => (await fetch(API + "/auth/me", { headers: { cookie } })).status;
   check("other sessions signed out after creating a password", (await me(otherDevice)) === 401 && (await me(fresh)) === 200);
 
+  // --- Sign-up stores only a hash; the original password can't be read back
+  const plainEmail = `plain-${stamp}@t.com`;
+  const PLAIN = "Original-Nao-Recuperavel-7";
+  await post("/auth/register", { name: "Plain", email: plainEmail, password: PLAIN });
+  emails.push(plainEmail);
+  const plainRow = (await prisma.user.findUnique({ where: { email: plainEmail } }))!;
+  check("sign-up: password stored as bcrypt hash, never in plain text",
+    plainRow.passwordHash !== PLAIN && !plainRow.passwordHash!.includes(PLAIN) && /^\$2[aby]\$12\$/.test(plainRow.passwordHash!));
+  check("sign-up: no column anywhere holds the plain password",
+    !JSON.stringify(await prisma.user.findMany({ where: { email: plainEmail } })).includes(PLAIN));
+
+  // --- Session expiry
+  const expiring = await sessionFor(plainRow.id, 1);
+  check("session valid before expiry", (await me(expiring)) === 200);
+  await prisma.session.updateMany({
+    where: { tokenHash: hashToken(expiring.split("=")[1]) },
+    data: { expiresAt: new Date(Date.now() - 1000) },
+  });
+  check("expired session -> 401", (await me(expiring)) === 401);
+  check("expired session removed from the database",
+    (await prisma.session.count({ where: { tokenHash: hashToken(expiring.split("=")[1]) } })) === 0);
+
+  // --- Expired password reset token
+  const resetSince = Date.now();
+  await post("/auth/forgot-password", { email: plainEmail });
+  let resetToken: string | undefined;
+  for (let i = 0; i < 40 && !resetToken; i++) {
+    const dir = path.join(process.cwd(), ".mail-outbox");
+    for (const f of (await readdir(dir).catch(() => [])).filter((n) => n.endsWith(".json")).sort().reverse()) {
+      const mail = JSON.parse(await readFile(path.join(dir, f), "utf8"));
+      if (mail.to === plainEmail && Date.parse(mail.date) >= resetSince) {
+        resetToken = mail.text.match(/#token=([A-Za-z0-9_-]+)/)?.[1];
+        break;
+      }
+    }
+    if (!resetToken) await sleep(100);
+  }
+  check("reset token stored only as hash",
+    !!resetToken && (await prisma.passwordResetToken.count({ where: { tokenHash: resetToken } })) === 0 &&
+    (await prisma.passwordResetToken.count({ where: { tokenHash: hashToken(resetToken!) } })) === 1);
+  await prisma.passwordResetToken.updateMany({
+    where: { tokenHash: hashToken(resetToken!) },
+    data: { expiresAt: new Date(Date.now() - 1000) },
+  });
+  const expiredReset = await post("/auth/reset-password", { token: resetToken!, password: "Nova-Senha-Expirada-3" });
+  check("expired reset token -> 400", expiredReset.status === 400, expiredReset.data.error);
+  check("password unchanged after expired token", (await post("/auth/login", { email: plainEmail, password: PLAIN })).status === 200);
+
   // --- Token verification
   check("garbage Google token -> 401", (await status(verifyGoogleCredential("not-a-jwt"))) === 401);
   const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
