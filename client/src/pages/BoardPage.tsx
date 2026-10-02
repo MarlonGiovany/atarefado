@@ -15,7 +15,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Toast } from '../components/Toast'
 import { makeNotice } from '../lib/notice'
 import type { Notice } from '../lib/notice'
-import { Avatar, Button, ErrorText, Input, Spinner } from '../components/ui'
+import { Avatar, Button, ErrorText, Input, PencilIcon, Spinner } from '../components/ui'
 
 type ConfirmRequest = {
   title: string
@@ -285,6 +285,12 @@ export function BoardPage({ boardId }: { boardId: string }) {
 
   // --- Board & members ---
 
+  const startEditingTitle = () => {
+    if (!board) return
+    setTitle(board.title)
+    setEditingTitle(true)
+  }
+
   const saveTitle = () => {
     setEditingTitle(false)
     const value = title.trim()
@@ -390,19 +396,27 @@ export function BoardPage({ boardId }: { boardId: string }) {
               className="text-lg font-bold sm:w-80"
             />
           ) : (
-            <h1 className="min-w-0">
+            <div className="flex min-w-0 items-center gap-1">
+              <h1 className="min-w-0">
+                <button
+                  type="button"
+                  title="Renomear quadro"
+                  onClick={startEditingTitle}
+                  className="max-w-full truncate rounded-md px-1 text-xl font-bold text-slate-900 hover:bg-slate-200/60"
+                >
+                  {board.title}
+                </button>
+              </h1>
               <button
                 type="button"
-                title="Renomear quadro"
-                onClick={() => {
-                  setTitle(board.title)
-                  setEditingTitle(true)
-                }}
-                className="max-w-full truncate rounded-md px-1 text-xl font-bold text-slate-900 hover:bg-slate-200/60"
+                onClick={startEditingTitle}
+                aria-label="Editar nome do quadro"
+                title="Editar nome do quadro"
+                className="shrink-0 rounded-md p-1.5 text-slate-500 hover:bg-slate-200/60 hover:text-indigo-600"
               >
-                {board.title}
+                <PencilIcon className="size-[1.125rem]" />
               </button>
-            </h1>
+            </div>
           )}
         </div>
 
