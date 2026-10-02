@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react'
+import { Link } from 'react-router'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerSolid'
 
@@ -134,6 +135,10 @@ export function Credit() {
   return (
     <p className="text-xs text-slate-500">
       Desenvolvido por <span className="font-semibold text-slate-700">Marlon Giovany</span>
+      {' · '}
+      <Link to="/privacidade" className="hover:text-slate-700 hover:underline">
+        Privacidade
+      </Link>
     </p>
   )
 }

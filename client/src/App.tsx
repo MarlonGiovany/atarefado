@@ -9,6 +9,7 @@ import { BoardPage } from './pages/BoardPage'
 import { AccountPage } from './pages/AccountPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 import { ServerUnavailable } from './components/ServerUnavailable'
 import { Spinner } from './components/ui'
 
@@ -37,6 +38,7 @@ export default function App() {
           {/* Reachable signed in or out: the e-mail link must always work */}
           <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
           <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+          <Route path="/privacidade" element={<PrivacyPage />} />
           <Route path="/" element={<Protected><BoardsPage /></Protected>} />
           <Route path="/boards/:boardId" element={<Protected><BoardPage /></Protected>} />
           <Route path="/conta" element={<Protected><AccountPage /></Protected>} />

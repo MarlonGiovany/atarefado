@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import { Credit, Logo } from './ui'
 
 /** Two-column layout shared by login, password reset and other signed-out pages. */
@@ -22,6 +23,10 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         <p className="text-sm text-indigo-200">
           Desenvolvido por <span className="font-semibold text-white">Marlon Giovany</span>
           {' · '}React, Express e Prisma
+          {' · '}
+          <Link to="/privacidade" className="hover:text-white hover:underline">
+            Privacidade
+          </Link>
         </p>
       </section>
 
