@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { api, errorMessage } from '../lib/api'
+import { boardPath, rememberBoard } from '../lib/boards'
 import { dayOf, formatShortDay, isDayKey, todayKey, weekOf } from '../lib/dates'
 import type { Board, Card, Column, Member } from '../lib/types'
 import { KanbanBoard } from '../components/board/KanbanBoard'
@@ -23,8 +24,9 @@ type ConfirmRequest = {
   action: () => Promise<void>
 }
 
-export function BoardPage() {
-  const { boardId } = useParams() as { boardId: string }
+/** The board itself; `boardId` comes from the address (see BoardRoutes). */
+export function BoardPage({ boardId }: { boardId: string }) {
+  const { slug } = useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -74,6 +76,16 @@ export function BoardPage() {
       active = false
     }
   }, [boardId, day, boardVersion])
+
+  // Keep the address on the board's current slug: after a rename, or when it was
+  // opened through an old /boards/<id> link
+  const currentSlug = board?.slug
+  useEffect(() => {
+    if (!currentSlug || currentSlug === slug) return
+    rememberBoard({ id: boardId, slug: currentSlug })
+    const search = searchParams.toString()
+    navigate({ pathname: boardPath(currentSlug), search: search && `?${search}` }, { replace: true })
+  }, [boardId, currentSlug, slug, searchParams, navigate])
 
   useEffect(() => {
     let active = true
@@ -279,7 +291,11 @@ export function BoardPage() {
     if (!board || !value || value === board.title) return
     mutate(async () => {
       setBoard({ ...board, title: value })
-      await api(`/boards/${boardId}`, 'PATCH', { title: value })
+      // The address follows the new name
+      const { board: saved } = await api<{ board: { slug: string } }>(`/boards/${boardId}`, 'PATCH', {
+        title: value,
+      })
+      setBoard((b) => (b ? { ...b, slug: saved.slug } : b))
     })
   }
 

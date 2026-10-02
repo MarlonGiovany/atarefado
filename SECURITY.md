@@ -83,6 +83,7 @@ Os contadores ficam **no banco de dados** (tabela `RateLimit`), não na memória
 
 ### Controle de acesso
 - Toda rota de quadros, colunas e cards confere se o usuário é membro do quadro; quem não é recebe **404** (não dá para descobrir IDs de quadros alheios).
+- O endereço legível do quadro (`/quadros/<slug>`) é só um atalho: ele é traduzido para o id por `GET /api/boards/slug/:slug`, que exige sessão e associação ao quadro e responde o **mesmo 404** (mesma mensagem) para quadro inexistente e para quem não é membro. Saber ou adivinhar um endereço não dá acesso a nada nem revela se o quadro existe, porque a resposta é idêntica nos dois casos. Um quadro novo com nome repetido apenas ganha `-2`, `-3` no endereço, sem mostrar o de ninguém.
 - Ações restritas ao dono (excluir quadro, convidar e remover membros) retornam **403** para membros comuns.
 - O responsável por um card precisa ser membro do quadro; cards não podem ser movidos para colunas de outro quadro; operações em lote conferem que todos os cards pertencem ao quadro.
 - As respostas nunca incluem `passwordHash`, `googleId` ou tokens. Membros de um quadro veem nome e e-mail uns dos outros, por design (convites são por e-mail).
@@ -130,18 +131,21 @@ Com a API rodando em modo de desenvolvimento (`npm run dev` em `server/`):
 ```bash
 npm test                 # tudo
 npm run test:api         # 45 verificações: rotas, quadros, cards, datas, controle de acesso
+npm run test:slugs       # 22 verificações: endereços legíveis dos quadros (acentos, nomes repetidos,
+                         #   renomear, criação simultânea, 404 igual para inexistente e para não-membro)
 npm run test:security    # 68 verificações: cookies, CSRF, logout, enumeração, bloqueio, política de senhas,
                          #   recuperação de senha, troca de senha, IDOR
 npm run test:google      # 40 verificações: vínculo Google, conta só-Google, migração de hash,
                          #   senha nunca em texto puro, expiração de sessão e de token de recuperação,
                          #   tokens guardados só como hash, token do Google forjado
-npm run test:serverless  # 10 verificações: bloqueio e limites valendo entre duas instâncias da API,
-                         #   contadores sem e-mail/IP, cabeçalhos do vercel.json iguais aos do helmet
+npm run test:serverless  # 10 verificações: bloqueio e limites valendo entre duas instâncias da API
+                         #   (sobe as duas sozinho), contadores sem e-mail/IP, cabeçalhos do vercel.json
+                         #   iguais aos do helmet
 ```
 
-O `npm test` começa zerando os contadores de limite do banco de desenvolvimento (eles sobrevivem a reinícios do servidor).
+O `npm test` começa zerando os contadores de limite do banco de desenvolvimento (eles sobrevivem a reinícios do servidor). O banco local do Prisma (`npm run db:local`) aceita uma conexão por vez; por isso o teste de duas instâncias reveza a conexão e espera o banco ficar livre.
 
-O build da Vercel foi validado localmente com a CLI oficial (`vercel build`): todas as 163 verificações passaram também contra a **função já empacotada** (não só contra o código-fonte), e um teste em modo produção com as variáveis da Vercel confirmou o endereço deduzido, o cookie `Secure`, a recusa de outras origens, o limite por IP real e a resposta 202 do "Esqueci minha senha" mesmo com falha no SMTP.
+O build da Vercel foi validado localmente com a CLI oficial (`vercel build`): as 163 verificações que existiam na época passaram também contra a **função já empacotada** (não só contra o código-fonte), e um teste em modo produção com as variáveis da Vercel confirmou o endereço deduzido, o cookie `Secure`, a recusa de outras origens, o limite por IP real e a resposta 202 do "Esqueci minha senha" mesmo com falha no SMTP.
 
 ## Dados sensíveis e configurações
 

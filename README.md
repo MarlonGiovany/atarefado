@@ -14,6 +14,7 @@ Gerenciador de tarefas colaborativo no estilo Kanban: crie quadros, organize as 
 - **Minha conta**: criar ou trocar a senha (inclusive para contas criadas pelo Google)
 - **Segurança**: proteção CSRF, limite de tentativas, mensagens que não revelam quais e-mails têm conta e política de senhas. Detalhes no [relatório de segurança](SECURITY.md)
 - **Quadros**: criar, renomear e excluir; cada quadro novo já vem com *A fazer / Em andamento / Concluído*
+- **Endereços legíveis**: cada quadro tem um endereço com o nome dele (`/quadros/tarefas-diarias`); nomes repetidos ganham `-2`, `-3`, e o endereço acompanha o nome ao renomear. Links antigos (`/boards/<id>`) continuam funcionando
 - **Organização por data**: cada tarefa pertence a um dia, e o quadro mostra só as tarefas do dia selecionado (por padrão, hoje)
   - Seletor com a semana, a quantidade de tarefas por dia, setas de dia anterior/próximo e calendário para pular para qualquer data
   - Botão **Hoje** para voltar rapidamente ao dia atual
@@ -126,6 +127,7 @@ A sessão vai no cookie `atarefado_session` (`HttpOnly`), definido no login. Tod
 | POST | `/api/auth/reset-password` | Definir nova senha com o token do e-mail |
 | PUT | `/api/account/password` | Criar ou trocar a senha |
 | GET / POST | `/api/boards` | Listar / criar quadros |
+| GET | `/api/boards/slug/:slug` | Id do quadro a partir do endereço (`/quadros/<slug>`); 404 igual para quadro inexistente e para quem não é membro |
 | GET | `/api/boards/:id?date=AAAA-MM-DD` | Quadro com colunas, membros e os cards do dia |
 | PATCH / DELETE | `/api/boards/:id` | Renomear / excluir quadro (excluir: dono) |
 | GET | `/api/boards/:id/days?from=…&to=…` | Quantidade de cards por dia no intervalo |
@@ -155,7 +157,7 @@ vercel.json  Build, rotas e cabeçalhos de segurança na Vercel
 Com a API rodando (`npm run dev` em `server/`), em outro terminal na pasta `server/`:
 
 ```bash
-npm test    # 163 verificações: rotas, controle de acesso, sessões, CSRF, senhas, recuperação de senha, Google e limites entre instâncias
+npm test    # 185 verificações: rotas, endereços dos quadros, controle de acesso, sessões, CSRF, senhas, recuperação de senha, Google e limites entre instâncias
 ```
 
 Os detalhes estão no [relatório de segurança](SECURITY.md).

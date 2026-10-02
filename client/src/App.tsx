@@ -5,7 +5,7 @@ import { useAuth } from './auth/useAuth'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { BoardsPage } from './pages/BoardsPage'
-import { BoardPage } from './pages/BoardPage'
+import { BoardByIdPage, BoardBySlugPage } from './pages/BoardRoutes'
 import { AccountPage } from './pages/AccountPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
@@ -40,7 +40,9 @@ export default function App() {
           <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />
           <Route path="/" element={<Protected><BoardsPage /></Protected>} />
-          <Route path="/boards/:boardId" element={<Protected><BoardPage /></Protected>} />
+          <Route path="/quadros/:slug" element={<Protected><BoardBySlugPage /></Protected>} />
+          {/* Old addresses keep working and are moved to /quadros/<slug> */}
+          <Route path="/boards/:boardId" element={<Protected><BoardByIdPage /></Protected>} />
           <Route path="/conta" element={<Protected><AccountPage /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

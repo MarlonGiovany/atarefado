@@ -4,7 +4,11 @@ import pg from "pg";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { env } from "./env.js";
 
-const pool = new pg.Pool({ connectionString: env.DATABASE_URL, max: env.DATABASE_POOL_MAX });
+const pool = new pg.Pool({
+  connectionString: env.DATABASE_URL,
+  max: env.DATABASE_POOL_MAX,
+  idleTimeoutMillis: env.DATABASE_IDLE_TIMEOUT_MS,
+});
 // On Vercel, keeps a suspended function from holding idle connections open
 // (no-op anywhere else)
 attachDatabasePool(pool);

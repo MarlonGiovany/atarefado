@@ -78,6 +78,9 @@ model RateLimit {
 model Board {
   id        String        @id @default(cuid())
   title     String
+  // Readable, unique address: /quadros/<slug> ("tarefas-diarias", "tarefas-diarias-2").
+  // Follows the title on rename. Access is still checked by membership.
+  slug      String        @unique
   createdAt DateTime      @default(now())
   members   BoardMember[]
   columns   Column[]

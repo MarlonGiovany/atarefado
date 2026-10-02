@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { HttpError } from "../lib/http-error.js";
 import { requireMember, requireOwner } from "../lib/access.js";
 import { dateToDay, dayString, dayToDate } from "../lib/dates.js";
+import { slugMatchesTitle, withBoardSlug } from "../lib/slugs.js";
 import { currentUser } from "../middleware/auth.js";
 
 export const boardsRouter = Router();
@@ -24,16 +25,30 @@ boardsRouter.get("/", async (req, res) => {
 
 boardsRouter.post("/", async (req, res) => {
   const { title } = titleSchema.parse(req.body);
-  const board = await prisma.board.create({
-    data: {
-      title,
-      members: { create: { userId: currentUser(req), role: "OWNER" } },
-      columns: {
-        create: DEFAULT_COLUMNS.map((title, i) => ({ title, position: i + 1 })),
+  const board = await withBoardSlug(title, (slug) =>
+    prisma.board.create({
+      data: {
+        title,
+        slug,
+        members: { create: { userId: currentUser(req), role: "OWNER" } },
+        columns: {
+          create: DEFAULT_COLUMNS.map((title, i) => ({ title, position: i + 1 })),
+        },
       },
-    },
-  });
+    }),
+  );
   res.status(201).json({ board });
+});
+
+/** Board id for an address (/quadros/<slug>). Same 404 for unknown and not-a-member. */
+boardsRouter.get("/slug/:slug", async (req, res) => {
+  const board = await prisma.board.findUnique({
+    where: { slug: req.params.slug },
+    select: { id: true, slug: true },
+  });
+  if (!board) throw new HttpError(404, "Quadro não encontrado");
+  await requireMember(board.id, currentUser(req));
+  res.json({ board });
 });
 
 /** `?date=YYYY-MM-DD` limits the cards to that day; without it every card is returned. */
@@ -158,7 +173,15 @@ boardsRouter.patch("/:boardId", async (req, res) => {
   const { boardId } = req.params;
   await requireMember(boardId, currentUser(req));
   const { title } = titleSchema.parse(req.body);
-  const board = await prisma.board.update({ where: { id: boardId }, data: { title } });
+  const current = await prisma.board.findUniqueOrThrow({ where: { id: boardId }, select: { slug: true } });
+  // The address follows the name, unless the current one already fits it
+  const board = slugMatchesTitle(current.slug, title)
+    ? await prisma.board.update({ where: { id: boardId }, data: { title } })
+    : await withBoardSlug(
+        title,
+        (slug) => prisma.board.update({ where: { id: boardId }, data: { title, slug } }),
+        boardId,
+      );
   res.json({ board });
 });
 

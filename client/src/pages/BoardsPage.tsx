@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { api, errorMessage } from '../lib/api'
+import { boardPath, rememberBoard } from '../lib/boards'
 import type { BoardSummary } from '../lib/types'
 import { Button, ErrorText, FieldHint, Input, Spinner } from '../components/ui'
 
@@ -85,13 +86,17 @@ export function BoardsPage() {
 
   useEffect(() => {
     api<{ boards: BoardSummary[] }>('/boards')
-      .then(({ boards }) => setBoards(boards))
+      .then(({ boards }) => {
+        boards.forEach(rememberBoard)
+        setBoards(boards)
+      })
       .catch((err) => setError(errorMessage(err)))
   }, [])
 
   async function createBoard(title: string) {
     const { board } = await api<{ board: BoardSummary }>('/boards', 'POST', { title })
-    navigate(`/boards/${board.id}`)
+    rememberBoard(board)
+    navigate(boardPath(board.slug))
   }
 
   const isEmpty = boards?.length === 0
@@ -136,7 +141,7 @@ export function BoardsPage() {
           {boards?.map((board, i) => (
             <li key={board.id}>
               <Link
-                to={`/boards/${board.id}`}
+                to={boardPath(board.slug)}
                 className="group block overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className={`h-20 bg-linear-to-br ${accents[i % accents.length]}`} />

@@ -8,6 +8,11 @@ const optional = z
   .optional()
   .transform((value) => value || undefined);
 
+/** Optional positive whole number; empty means "not set". */
+const optionalCount = optional.pipe(
+  z.preprocess((value) => (value === undefined ? undefined : Number(value)), z.number().int().positive().optional()),
+);
+
 // On Vercel (which sets VERCEL=1), defaults come from its system environment
 // variables, so a deploy needs no per-environment URL setup. Explicit values win.
 export const onVercel = Boolean(process.env.VERCEL);
@@ -27,7 +32,11 @@ const schema = z
     DATABASE_URL: z.string().min(1),
     // Connections per server instance (pg's default: 10). The local database from
     // `npm run db:local` (PGlite) handles a single connection, so use 1 there.
-    DATABASE_POOL_MAX: z.coerce.number().int().positive().optional(),
+    DATABASE_POOL_MAX: optionalCount,
+    // Milliseconds an idle connection is kept before closing (pg's default: 10000).
+    // Only the two-instance test sets it: the local database refuses a second
+    // connection while one is open, so those instances must hand it over quickly.
+    DATABASE_IDLE_TIMEOUT_MS: optionalCount,
     PORT: z.coerce.number().default(3333),
     // Front-end address: allowed CORS/CSRF origin and base for links in e-mails
     CLIENT_URL: z.url().default(vercelUrl() ?? "http://localhost:5173"),

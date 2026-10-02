@@ -6,6 +6,7 @@
  */
 import { hashPassword } from "../src/lib/passwords.js";
 import { prisma } from "../src/lib/prisma.js";
+import { freeBoardSlug } from "../src/lib/slugs.js";
 
 const DEMO_PASSWORD = "demo12345";
 
@@ -84,6 +85,7 @@ async function main() {
   await prisma.board.create({
     data: {
       title: "Lançamento do produto",
+      slug: await freeBoardSlug("Lançamento do produto"),
       members: {
         create: [
           { userId: owner.id, role: "OWNER" },
@@ -111,6 +113,7 @@ async function main() {
   await prisma.board.create({
     data: {
       title: "Pessoal",
+      slug: await freeBoardSlug("Pessoal"),
       members: { create: { userId: owner.id, role: "OWNER" } },
       columns: {
         create: ["A fazer", "Fazendo", "Feito"].map((title, i) => ({ title, position: i + 1 })),

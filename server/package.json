@@ -17,8 +17,9 @@
     "test:api": "node tests/api.test.mjs",
     "test:security": "node tests/security.test.mjs",
     "test:google": "tsx tests/google.test.mts",
+    "test:slugs": "node tests/slugs.test.mjs",
     "test:serverless": "tsx tests/serverless.test.mts",
-    "test": "tsx tests/reset-limits.mts && npm run test:api && npm run test:security && npm run test:google && npm run test:serverless"
+    "test": "tsx tests/reset-limits.mts && npm run test:api && npm run test:slugs && npm run test:security && npm run test:google && npm run test:serverless"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",

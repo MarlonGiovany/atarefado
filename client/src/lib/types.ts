@@ -39,6 +39,8 @@ export type Member = {
 export type BoardSummary = {
   id: string
   title: string
+  /** Address: /quadros/<slug> */
+  slug: string
   createdAt: string
   _count: { members: number }
 }
@@ -46,6 +48,7 @@ export type BoardSummary = {
 export type Board = {
   id: string
   title: string
+  slug: string
   createdAt: string
   members: Member[]
   columns: Column[]
