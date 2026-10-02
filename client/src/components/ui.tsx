@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerSolid'
 
@@ -23,12 +23,36 @@ export function Button({
   )
 }
 
-export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInputElement>) {
+// ComponentProps<'input'> includes `ref` (React 19), so callers can focus the field.
+// aria-invalid turns the ring red, pairing with a FieldHint error.
+export function Input({ className = '', ...props }: ComponentProps<'input'>) {
   return (
     <input
-      className={`w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600 focus:outline-none ${className}`}
+      className={`w-full rounded-lg border-0 bg-white px-3 py-2 text-sm text-slate-900 ring-1 ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-600 focus:outline-none aria-invalid:ring-2 aria-invalid:ring-red-500 ${className}`}
       {...props}
     />
+  )
+}
+
+/** Short message under a field: a red error, or a neutral tip when `tone="info"`. */
+export function FieldHint({
+  id,
+  children,
+  tone = 'error',
+}: {
+  id: string
+  children: ReactNode
+  tone?: 'error' | 'info'
+}) {
+  if (!children) return null
+  return (
+    <p
+      id={id}
+      role={tone === 'error' ? 'alert' : undefined}
+      className={`mt-1.5 text-xs ${tone === 'error' ? 'font-medium text-red-600' : 'text-slate-500'}`}
+    >
+      {children}
+    </p>
   )
 }
 

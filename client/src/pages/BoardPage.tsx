@@ -431,7 +431,7 @@ export function BoardPage() {
 
       {!isLoadingDay && dayTotal === 0 && (
         <p className="mx-4 mb-3 text-sm text-slate-500 sm:mx-6">
-          Nenhuma tarefa para este dia. Use “+ Adicionar card” em uma coluna para criar uma.
+          Nenhuma tarefa para este dia ainda. Crie a primeira na coluna abaixo.
         </p>
       )}
 

@@ -205,10 +205,11 @@ export function KanbanBoard({
       }}
     >
       <div className="flex h-full items-start gap-4 overflow-x-auto px-4 pb-6 sm:px-6">
-        {columns.map((column) => (
+        {columns.map((column, index) => (
           <ColumnView
             key={column.id}
             column={column}
+            firstTaskHint={index === 0 && columns.every((col) => col.cards.length === 0)}
             onOpenCard={onOpenCard}
             onDeleteCard={onDeleteCard}
             onAddCard={onAddCard}

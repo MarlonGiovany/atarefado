@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { Card, Column } from '../../lib/types'
 import { CardItem } from './CardItem'
-import { Button, Input, TrashIcon } from '../ui'
+import { Button, FieldHint, Input, TrashIcon } from '../ui'
 
 type ColumnViewProps = {
   column: Column
+  /** Highlights where to add a task when the selected day has none yet */
+  firstTaskHint?: boolean
   onOpenCard: (card: Card) => void
   onDeleteCard: (card: Card) => void
   onAddCard: (columnId: string, title: string) => Promise<void>
@@ -17,6 +19,7 @@ type ColumnViewProps = {
 
 export function ColumnView({
   column,
+  firstTaskHint = false,
   onOpenCard,
   onDeleteCard,
   onAddCard,
@@ -30,15 +33,28 @@ export function ColumnView({
   })
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
+  const [cardError, setCardError] = useState('')
+  const cardInputRef = useRef<HTMLInputElement>(null)
+  const cardErrorId = useId()
   const [editingTitle, setEditingTitle] = useState(false)
   const [title, setTitle] = useState(column.title)
 
   async function submitCard(e: FormEvent) {
     e.preventDefault()
     const value = newTitle.trim()
-    if (!value) return
+    if (!value) {
+      setCardError('Escreva o que precisa ser feito antes de adicionar.')
+      cardInputRef.current?.focus()
+      return
+    }
     setNewTitle('')
+    setCardError('')
     await onAddCard(column.id, value)
+  }
+
+  function closeAddForm() {
+    setAdding(false)
+    setCardError('')
   }
 
   function submitTitle() {
@@ -110,25 +126,40 @@ export function ColumnView({
 
       <div className="px-3 pb-3">
         {adding ? (
-          <form onSubmit={submitCard} className="space-y-2">
-            <Input
-              autoFocus
-              aria-label="Título do card"
-              placeholder="O que precisa ser feito?"
-              value={newTitle}
-              maxLength={200}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => e.key === 'Escape' && setAdding(false)}
-            />
+          <form onSubmit={submitCard} noValidate className="space-y-2">
+            <div>
+              <Input
+                ref={cardInputRef}
+                autoFocus
+                aria-label="Título do card"
+                placeholder="O que precisa ser feito?"
+                value={newTitle}
+                maxLength={200}
+                aria-invalid={cardError ? true : undefined}
+                aria-describedby={cardError ? cardErrorId : undefined}
+                onChange={(e) => {
+                  setNewTitle(e.target.value)
+                  if (cardError) setCardError('')
+                }}
+                onKeyDown={(e) => e.key === 'Escape' && closeAddForm()}
+              />
+              <FieldHint id={cardErrorId}>{cardError}</FieldHint>
+            </div>
             <div className="flex gap-2">
-              <Button type="submit" disabled={!newTitle.trim()}>
-                Adicionar
-              </Button>
-              <Button type="button" variant="ghost" onClick={() => setAdding(false)}>
+              <Button type="submit">Adicionar</Button>
+              <Button type="button" variant="ghost" onClick={closeAddForm}>
                 Cancelar
               </Button>
             </div>
           </form>
+        ) : firstTaskHint ? (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="w-full rounded-lg border-2 border-dashed border-indigo-300 bg-white px-3 py-2.5 text-center text-sm font-medium text-indigo-700 hover:border-indigo-400 hover:bg-indigo-50"
+          >
+            + Crie sua primeira tarefa aqui
+          </button>
         ) : (
           <button
             type="button"
