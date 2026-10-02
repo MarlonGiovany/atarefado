@@ -17,11 +17,13 @@
     "test:api": "node tests/api.test.mjs",
     "test:security": "node tests/security.test.mjs",
     "test:google": "tsx tests/google.test.mts",
-    "test": "npm run test:api && npm run test:security && npm run test:google"
+    "test:serverless": "tsx tests/serverless.test.mts",
+    "test": "tsx tests/reset-limits.mts && npm run test:api && npm run test:security && npm run test:google && npm run test:serverless"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@vercel/functions": "^3.9.10",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",

@@ -32,12 +32,12 @@ accountRouter.put("/password", async (req, res) => {
   const session = currentSession(req);
 
   if (user.passwordHash) {
-    assertNotLockedOut(user.email);
+    await assertNotLockedOut(user.email);
     if (!body.currentPassword || !(await verifyPassword(body.currentPassword, user.passwordHash))) {
-      recordFailedLogin(user.email);
+      await recordFailedLogin(user.email);
       throw new HttpError(400, "A senha atual está incorreta.");
     }
-    clearFailedLogins(user.email);
+    await clearFailedLogins(user.email);
   } else if (Date.now() - session.createdAt.getTime() > RECENT_LOGIN_MS) {
     res.status(403).json({
       code: "recent_login_required",

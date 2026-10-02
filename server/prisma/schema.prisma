@@ -64,6 +64,17 @@ model GoogleLinkRequest {
   @@index([userId])
 }
 
+// Rate limit and failed-login counters (fixed window per key). Kept in the
+// database so every server instance sees the same counts: serverless functions
+// don't share memory. The key is a SHA-256 hash, so no e-mail or IP is stored.
+model RateLimit {
+  key     String   @id
+  hits    Int
+  resetAt DateTime @db.Timestamptz(3)
+
+  @@index([resetAt])
+}
+
 model Board {
   id        String        @id @default(cuid())
   title     String

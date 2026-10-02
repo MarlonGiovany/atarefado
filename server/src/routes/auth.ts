@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions";
 import { Router } from "express";
 import { z } from "zod";
 import { env } from "../lib/env.js";
@@ -68,7 +69,7 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
 
 authRouter.post("/login", loginLimiter, async (req, res) => {
   const body = z.object({ email, password: z.string().min(1).max(1000) }).parse(req.body);
-  assertNotLockedOut(body.email);
+  await assertNotLockedOut(body.email);
 
   const user = await prisma.user.findUnique({ where: { email: body.email } });
   // Same message and same bcrypt work for "no such e-mail", "wrong password" and
@@ -76,10 +77,10 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
   // runs first on purpose: `!user || ...` would skip it and answer faster.
   const passwordMatches = await verifyPassword(body.password, user?.passwordHash);
   if (!user || !passwordMatches) {
-    recordFailedLogin(body.email);
+    await recordFailedLogin(body.email);
     throw new HttpError(401, INVALID_CREDENTIALS);
   }
-  clearFailedLogins(body.email);
+  await clearFailedLogins(body.email);
 
   // Transparent migration of hashes made with an older, cheaper bcrypt cost
   if (user.passwordHash && needsRehash(user.passwordHash)) {
@@ -157,10 +158,13 @@ authRouter.post("/forgot-password", forgotPasswordLimiter, forgotPasswordEmailLi
   res.status(202).json({
     message: "Se existir uma conta associada a este e-mail, enviaremos instruções para redefinição da senha.",
   });
-  requestPasswordReset(body.email).catch((err: unknown) => {
+  const sending = requestPasswordReset(body.email).catch((err: unknown) => {
     // Never log the token or the e-mail body
     console.error("[forgot-password] could not send e-mail:", err instanceof Error ? err.name : err);
   });
+  // On Vercel the function is frozen once the response is sent; this keeps it
+  // running until the e-mail is out. Elsewhere it does nothing.
+  waitUntil(sending);
 });
 
 authRouter.post("/reset-password", resetPasswordLimiter, async (req, res) => {

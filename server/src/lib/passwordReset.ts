@@ -72,5 +72,5 @@ export async function resetPassword(token: string, newPassword: string) {
     prisma.session.deleteMany({ where: { userId: user.id } }),
     prisma.googleLinkRequest.deleteMany({ where: { userId: user.id } }),
   ]);
-  clearFailedLogins(user.email);
+  await clearFailedLogins(user.email);
 }

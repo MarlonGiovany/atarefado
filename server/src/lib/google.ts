@@ -100,9 +100,9 @@ export async function confirmGoogleLink(linkToken: string, password: string) {
   }
 
   const { user } = request;
-  assertNotLockedOut(user.email);
+  await assertNotLockedOut(user.email);
   if (!(await verifyPassword(password, user.passwordHash))) {
-    recordFailedLogin(user.email);
+    await recordFailedLogin(user.email);
     if (request.attempts + 1 >= MAX_LINK_ATTEMPTS) {
       await prisma.googleLinkRequest.delete({ where: { id: request.id } });
     } else {
@@ -120,7 +120,7 @@ export async function confirmGoogleLink(linkToken: string, password: string) {
     throw new HttpError(409, "Não foi possível vincular esta conta Google.");
   }
 
-  clearFailedLogins(user.email);
+  await clearFailedLogins(user.email);
   const [linked] = await prisma.$transaction([
     prisma.user.update({ where: { id: user.id }, data: { googleId: request.googleId } }),
     prisma.googleLinkRequest.deleteMany({ where: { userId: user.id } }),

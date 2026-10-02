@@ -35,7 +35,7 @@ Gerenciador de tarefas colaborativo no estilo Kanban: crie quadros, organize as 
 
 ## Como rodar
 
-Requisito: Node.js 20 ou superior. Não é preciso instalar o PostgreSQL: o Prisma sobe um PostgreSQL local com um comando.
+Requisito: Node.js 24. Não é preciso instalar o PostgreSQL: o Prisma sobe um PostgreSQL local com um comando.
 
 ```bash
 # 1. API
@@ -54,9 +54,20 @@ npm install
 npm run dev                 # http://localhost:5173
 ```
 
-## Produção
+## Publicar na Vercel
 
-Em produção, a API também entrega o front-end já compilado: **um único serviço, um único domínio**, o que mantém o cookie de sessão e a proteção CSRF funcionando sem configuração extra. Na raiz do projeto:
+O projeto já vem configurado para a Vercel (`vercel.json`). A CDN da Vercel entrega o front-end, e a API Express roda como uma Vercel Function (`api/index.mjs`). Os dois ficam no **mesmo domínio**, então o cookie de sessão e a proteção CSRF funcionam sem configuração extra. Tudo cabe nos planos gratuitos da Vercel (Hobby), do Neon e do Brevo.
+
+1. **GitHub**: envie o repositório.
+2. **Vercel**: *Add New → Project*, importe o repositório e deixe as configurações como estão (o `vercel.json` define instalação, build e rotas).
+3. **Banco**: na aba *Storage* do projeto, crie um **Neon Postgres** (plano gratuito). A integração cria `DATABASE_URL` e `DATABASE_URL_UNPOOLED` sozinha. Escolha a mesma região das funções (padrão: `Washington, D.C., USA (East) – iad1`).
+4. **Variáveis** (*Settings → Environment Variables*): `GOOGLE_CLIENT_ID`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `MAIL_FROM`. `NODE_ENV`, `CLIENT_URL` e `TRUST_PROXY` não precisam ser definidos na Vercel.
+5. **Deploy**: o build compila front e API e aplica as migrações no banco (`prisma migrate deploy`). Cada `git push` na branch principal publica de novo.
+6. **Google Cloud**: em *Origens JavaScript autorizadas*, acrescente o endereço do site (ex.: `https://atarefado.vercel.app`).
+
+### Em um servidor comum (Render, Railway, VPS)
+
+Na raiz do projeto, a API também entrega o front-end já compilado: **um único serviço, um único domínio**.
 
 ```bash
 npm run build    # instala e compila o front (client/dist) e a API (server/dist)
@@ -69,7 +80,9 @@ Variáveis obrigatórias: `NODE_ENV=production`, `DATABASE_URL` (PostgreSQL), `C
 
 ### E-mails (recuperação de senha)
 
-Em desenvolvimento não é preciso configurar nada: os e-mails são salvos em `server/.mail-outbox/` (abra o `.html` no navegador para clicar no link). Em produção, configure as variáveis `SMTP_*` e `MAIL_FROM` no `server/.env`; sem elas o servidor não inicia em modo produção.
+Em desenvolvimento não é preciso configurar nada: os e-mails são salvos em `server/.mail-outbox/` (abra o `.html` no navegador para clicar no link). Em produção, configure as variáveis `SMTP_*` e `MAIL_FROM` (na Vercel, em *Environment Variables*); sem elas o servidor não inicia em modo produção.
+
+Uma opção gratuita é o **Brevo** (300 e-mails por dia, sem precisar de domínio próprio): crie a conta, valide o remetente em *Senders*, gere uma chave em *SMTP & API → SMTP* e use `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587`, `SMTP_USER` (o login SMTP mostrado na página), `SMTP_PASS` (a chave) e `MAIL_FROM="Atarefado <seu-remetente-validado>"`.
 
 ### Login com Google (opcional)
 
@@ -78,7 +91,7 @@ Sem configuração o app funciona normalmente, só sem o botão do Google. Para 
 1. Acesse o [Google Cloud Console](https://console.cloud.google.com/) e crie um projeto.
 2. Em **Google Auth Platform** (ou "APIs e serviços → Tela de consentimento OAuth"), configure o app: nome "Atarefado", e-mail de suporte e público **Externo**. Enquanto o app estiver em modo **Teste**, adicione seu e-mail em **Usuários de teste**.
 3. Em **Clientes** (ou "Credenciais → Criar credenciais → ID do cliente OAuth"), crie um cliente do tipo **Aplicativo da Web**.
-4. Em **Origens JavaScript autorizadas**, adicione `http://localhost:5173` e `http://localhost`. Não é preciso URI de redirecionamento.
+4. Em **Origens JavaScript autorizadas**, adicione `http://localhost:5173` e `http://localhost` (e, ao publicar, o endereço do site, ex.: `https://atarefado.vercel.app`). Não é preciso URI de redirecionamento: o botão usa o pop-up do Google e devolve o *ID token* direto para a página.
 5. Copie o **ID do cliente** (termina em `.apps.googleusercontent.com`) para `GOOGLE_CLIENT_ID` no `server/.env` e reinicie a API.
 
 O ID do cliente não é secreto (ele aparece na página); nenhuma "chave secreta do cliente" é usada.
@@ -132,7 +145,9 @@ A sessão vai no cookie `atarefado_session` (`HttpOnly`), definido no login. Tod
 ```
 client/   App React (pages, components/board, lib/api, lib/dates)
 server/   API Express (routes, middleware, lib) + schema, migrations e seed do Prisma
-          tests/  testes de ponta a ponta da API, de segurança e do login com Google
+          tests/  testes de ponta a ponta da API, de segurança, do login com Google e de serverless
+api/      Ponto de entrada da Vercel Function (carrega a API compilada)
+vercel.json  Build, rotas e cabeçalhos de segurança na Vercel
 ```
 
 ## Testes
@@ -140,18 +155,18 @@ server/   API Express (routes, middleware, lib) + schema, migrations e seed do P
 Com a API rodando (`npm run dev` em `server/`), em outro terminal na pasta `server/`:
 
 ```bash
-npm test    # 153 verificações: rotas, controle de acesso, sessões, CSRF, senhas, recuperação de senha e Google
+npm test    # 163 verificações: rotas, controle de acesso, sessões, CSRF, senhas, recuperação de senha, Google e limites entre instâncias
 ```
 
 Os detalhes estão no [relatório de segurança](SECURITY.md).
 
 ## Próximos passos
 
-- [ ] Sincronização em tempo real entre usuários (Socket.IO)
+- [ ] Sincronização em tempo real entre usuários (na Vercel, que não mantém conexões WebSocket abertas, via um serviço externo como Pusher ou Ably)
 - [ ] Comentários e histórico de atividades nos cards
 - [ ] Verificação de e-mail no cadastro e autenticação em dois fatores
 - [ ] CI com GitHub Actions rodando os testes
-- [ ] Publicar online (Render ou Railway)
+- [ ] Publicar online (Vercel)
 - [ ] Modo escuro
 
 ## Autor

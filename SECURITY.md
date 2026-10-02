@@ -53,6 +53,8 @@ Como a sessão está em cookie, toda requisição que altera dados (POST, PUT, P
 
 Em desenvolvimento os limites por IP são 10 vezes maiores (testes locais saem todos do mesmo IP). Os limites por conta valem igual em todos os ambientes.
 
+Os contadores ficam **no banco de dados** (tabela `RateLimit`), não na memória do servidor: na Vercel cada instância da função tem memória própria, e um contador em memória poderia ser contornado repartindo as tentativas entre instâncias. A contagem é feita por uma única instrução SQL atômica (parametrizada), então requisições simultâneas não perdem contagem. A chave guardada é o **hash SHA-256** de "limite + IP/e-mail", então a tabela não contém e-mails nem IPs. Contadores vencidos são apagados de tempos em tempos durante as próprias requisições, sem processo em segundo plano. O algoritmo de limite continua sendo o do `express-rate-limit`; só o armazenamento mudou.
+
 ### Login com Google
 - Botão oficial do **Google Identity Services** (OpenID Connect). O app nunca vê nem processa a senha do Google.
 - O servidor valida o *ID token* com a biblioteca oficial `google-auth-library`: **assinatura, emissor (`iss`), audiência (`aud` = nosso client ID) e validade (`exp`)**, e exige e-mail verificado.
@@ -67,7 +69,7 @@ Em desenvolvimento os limites por IP são 10 vezes maiores (testes locais saem t
 - A senha local pode ser criada em **Minha conta**, desde que o login com Google tenha sido feito **nos últimos 10 minutos**.
 
 ### Recuperação de senha
-1. "Esqueci minha senha" sempre responde: *"Se existir uma conta associada a este e-mail, enviaremos instruções para redefinição da senha."* O envio acontece em segundo plano, então o tempo de resposta também não revela nada.
+1. "Esqueci minha senha" sempre responde: *"Se existir uma conta associada a este e-mail, enviaremos instruções para redefinição da senha."* O envio acontece depois da resposta, então o tempo de resposta também não revela nada. Na Vercel, `waitUntil` (biblioteca oficial `@vercel/functions`) mantém a função ativa até o e-mail sair.
 2. Token de **256 bits** do gerador criptográfico do sistema operacional (sem IDs sequenciais nem dados pessoais), guardado **só como hash SHA-256**.
 3. Validade de **30 minutos**, **uso único** (o consumo é atômico) e um novo pedido **invalida os anteriores**.
 4. O link usa o **fragmento da URL** (`/redefinir-senha#token=…`), que os navegadores não enviam ao servidor: o token não vai para logs de acesso nem para o cabeçalho `Referer`. A página apaga o token da barra de endereço assim que o lê.
@@ -98,20 +100,25 @@ Em desenvolvimento os limites por IP são 10 vezes maiores (testes locais saem t
 
 | Variável | Valor |
 |---|---|
-| `NODE_ENV` | `production` (ativa cookie `Secure` e limites por IP normais) |
-| `CLIENT_URL` | Endereço público do front-end, **obrigatoriamente `https://`** |
-| `TRUST_PROXY` | Número de proxies na frente da API (ex.: `1` no Render ou atrás de Nginx), para os limites verem o IP real |
+| `DATABASE_URL` | PostgreSQL (na Vercel: Neon, preenchida pela integração) |
+| `DATABASE_URL_UNPOOLED` | Conexão direta, usada só pelas migrações (preenchida pela integração Neon; opcional fora dela) |
+| `NODE_ENV` | `production` (ativa cookie `Secure` e limites por IP normais). **Na Vercel é o padrão** |
+| `CLIENT_URL` | Endereço público do front-end, **obrigatoriamente `https://`**. **Na Vercel é deduzido** do domínio de produção (ou da URL do preview) |
+| `TRUST_PROXY` | Número de proxies na frente da API (ex.: `1` no Render ou atrás de Nginx), para os limites verem o IP real. **Na Vercel o padrão é `1`**: a borda da Vercel sobrescreve `X-Forwarded-For` com o IP real, então ele não pode ser falsificado pelo cliente |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Servidor de e-mail (obrigatório) |
 | `GOOGLE_CLIENT_ID` | Client ID do Google |
 
 No Google Cloud Console, acrescente o domínio de produção (com `https://`) em **Origens JavaScript autorizadas**.
 
-Em produção a própria API entrega o front-end compilado (`SERVE_CLIENT`, ativo por padrão), então site e API ficam no **mesmo domínio** e o cookie `SameSite=Lax` e a checagem de origem funcionam sem ajustes. Os cabeçalhos de segurança valem também para as páginas: CSP liberando só os próprios arquivos e o necessário para o login do Google e as fontes do Google, `Cross-Origin-Opener-Policy: same-origin-allow-popups` (exigido pelo pop-up do Google), HSTS, `upgrade-insecure-requests` e `Referrer-Policy: no-referrer`.
+**Na Vercel** (`vercel.json`): o front-end compilado é servido pela CDN da Vercel e a API roda como uma Vercel Function (`api/index.mjs`, que carrega o mesmo app Express). Os dois ficam no **mesmo domínio**, então o cookie `SameSite=Lax` e a checagem de origem funcionam sem ajustes. Os cabeçalhos de segurança das páginas são definidos no `vercel.json` com **os mesmos valores do `helmet`** (um teste automático confere que continuam iguais): CSP liberando só os próprios arquivos e o necessário para o login do Google e as fontes do Google, `Cross-Origin-Opener-Policy: same-origin-allow-popups` (exigido pelo pop-up do Google), HSTS, `upgrade-insecure-requests` e `Referrer-Policy: no-referrer`. As respostas da API continuam com os cabeçalhos do próprio `helmet`.
+
+**Em servidor comum** (Render, Railway, VPS): `npm run build` e `npm start` na raiz; a própria API entrega o front-end (`SERVE_CLIENT`, ativo por padrão em produção) com os mesmos cabeçalhos.
 
 ## Riscos residuais e próximos passos
 
 - **Cadastro revela que um e-mail já existe.** Só dá para eliminar isso com confirmação de e-mail no cadastro. A rota tem limite de tentativas e a mensagem é neutra. Próximo passo sugerido: verificação de e-mail.
-- **Limites de tentativa em memória**: funcionam para uma instância do servidor. Com várias instâncias, use um armazenamento compartilhado (ex.: Redis).
+- **Previews da Vercel** aceitam requisições só pela URL do branch (a checagem de origem compara com um único endereço), e o login com Google só funciona nos domínios cadastrados no Google Cloud.
+- **Cada requisição limitada faz uma consulta a mais no banco** (o contador). É o preço de os limites valerem entre instâncias; só as rotas de autenticação são limitadas.
 - **Lista de senhas comuns curta** (as mais usadas). Melhoria: consultar o serviço *Have I Been Pwned* por *k-anonymity*.
 - **Sem autenticação em dois fatores** para contas com senha.
 - Sessões têm validade absoluta de 7 dias, sem expiração por inatividade.
@@ -128,11 +135,18 @@ npm run test:security    # 68 verificações: cookies, CSRF, logout, enumeraçã
 npm run test:google      # 40 verificações: vínculo Google, conta só-Google, migração de hash,
                          #   senha nunca em texto puro, expiração de sessão e de token de recuperação,
                          #   tokens guardados só como hash, token do Google forjado
+npm run test:serverless  # 10 verificações: bloqueio e limites valendo entre duas instâncias da API,
+                         #   contadores sem e-mail/IP, cabeçalhos do vercel.json iguais aos do helmet
 ```
+
+O `npm test` começa zerando os contadores de limite do banco de desenvolvimento (eles sobrevivem a reinícios do servidor).
+
+O build da Vercel foi validado localmente com a CLI oficial (`vercel build`): todas as 163 verificações passaram também contra a **função já empacotada** (não só contra o código-fonte), e um teste em modo produção com as variáveis da Vercel confirmou o endereço deduzido, o cookie `Secure`, a recusa de outras origens, o limite por IP real e a resposta 202 do "Esqueci minha senha" mesmo com falha no SMTP.
 
 ## Dados sensíveis e configurações
 
-- Nenhuma senha, chave de API, *client secret*, token, credencial de banco ou SMTP no código ou no histórico do Git; `.env`, banco e `.mail-outbox/` estão no `.gitignore`.
+- Nenhuma senha, chave de API, *client secret*, token, credencial de banco ou SMTP no código ou no histórico do Git; `.env`, `.env*.local`, `.vercel/`, banco e `.mail-outbox/` estão no `.gitignore`.
+- Não existe "secret da aplicação" porque nada é assinado: a sessão é um token aleatório de 256 bits guardado no banco só como hash, e não um JWT ou cookie assinado. Criar uma variável de segredo sem uso não aumentaria a segurança.
 - A única senha escrita no código é a da **conta demo pública** (`server/prisma/seed.ts`), documentada no README de propósito. Ela só existe no banco de desenvolvimento.
 - O `GOOGLE_CLIENT_ID` não é secreto (aparece na página), mas fica em variável de ambiente.
 - Logs registram só erros inesperados (pilha), nunca corpo de requisição, senha, token ou dados pessoais.

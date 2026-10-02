@@ -1,6 +1,11 @@
 node_modules/
 dist/
 .env
+.env*.local
+# Vercel CLI (project link, local build output)
+.vercel/
+# Local editor/agent settings
+.claude/
 *.db
 *.db-journal
 server/src/generated/
