@@ -6,18 +6,21 @@ import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { BoardsPage } from './pages/BoardsPage'
 import { BoardPage } from './pages/BoardPage'
+import { ServerUnavailable } from './components/ServerUnavailable'
 import { Spinner } from './components/ui'
 
 function Protected({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, loading, offline } = useAuth()
   if (loading) return <Spinner fullScreen />
+  if (offline) return <ServerUnavailable />
   if (!user) return <Navigate to="/login" replace />
   return <Layout>{children}</Layout>
 }
 
 function PublicOnly({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth()
+  const { user, loading, offline } = useAuth()
   if (loading) return <Spinner fullScreen />
+  if (offline) return <ServerUnavailable />
   if (user) return <Navigate to="/" replace />
   return children
 }

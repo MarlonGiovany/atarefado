@@ -45,7 +45,8 @@ export function CardItem({ card, onOpen, onDelete }: CardItemProps) {
     >
       <button
         type="button"
-        className="block w-full cursor-grab rounded-lg focus-visible:outline-2 focus-visible:outline-indigo-600 active:cursor-grabbing"
+        // touch-manipulation + no callout/selection: press-and-hold drags instead of opening the OS menu
+        className="block w-full cursor-grab touch-manipulation rounded-lg select-none [-webkit-touch-callout:none] focus-visible:outline-2 focus-visible:outline-indigo-600 active:cursor-grabbing"
         onClick={() => onOpen(card)}
         {...attributes}
         {...listeners}

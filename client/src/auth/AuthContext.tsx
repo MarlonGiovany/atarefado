@@ -1,23 +1,50 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { api, tokenStore, UNAUTHORIZED_EVENT } from '../lib/api'
+import { api, ApiError, tokenStore, UNAUTHORIZED_EVENT } from '../lib/api'
 import type { User } from '../lib/types'
 import { AuthContext } from './useAuth'
 
 type AuthResponse = { token: string; user: User }
+type SessionStatus = 'checking' | 'ready' | 'offline'
+
+const RETRY_DELAY_MS = 5000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(() => tokenStore.get() !== null)
+  const [status, setStatus] = useState<SessionStatus>(() =>
+    tokenStore.get() ? 'checking' : 'ready',
+  )
+  const [attempt, setAttempt] = useState(0)
 
-  // Restore the session from a saved token
+  // Restore the session from a saved token. Only a 401 ends the session (api() clears
+  // the token then); any other failure keeps the token and retries, so a server that's
+  // briefly down doesn't log anyone out.
   useEffect(() => {
     if (!tokenStore.get()) return
-    api<{ user: User }>('/auth/me')
-      .then(({ user }) => setUser(user))
-      .catch(() => tokenStore.clear())
-      .finally(() => setLoading(false))
-  }, [])
+    let active = true
+    api<{ user: User }>('/auth/me').then(
+      ({ user }) => {
+        if (!active) return
+        setUser(user)
+        setStatus('ready')
+      },
+      (err) => {
+        if (!active) return
+        setStatus(err instanceof ApiError && err.status === 401 ? 'ready' : 'offline')
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [attempt])
+
+  useEffect(() => {
+    if (status !== 'offline') return
+    const timer = setTimeout(() => setAttempt((n) => n + 1), RETRY_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [status, attempt])
+
+  const retry = useCallback(() => setAttempt((n) => n + 1), [])
 
   useEffect(() => {
     const onUnauthorized = () => setUser(null)
@@ -49,10 +76,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     tokenStore.clear()
     setUser(null)
+    setStatus('ready')
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading: status === 'checking',
+        offline: status === 'offline',
+        retry,
+        login,
+        register,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

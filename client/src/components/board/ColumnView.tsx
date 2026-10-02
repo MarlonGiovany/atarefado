@@ -24,7 +24,10 @@ export function ColumnView({
   onDelete,
 }: ColumnViewProps) {
   // The column body is a drop target too, so cards can be dropped into empty columns
-  const { setNodeRef, isOver } = useDroppable({ id: column.id, data: { type: 'column' } })
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.id,
+    data: { type: 'column', cardCount: column.cards.length },
+  })
   const [adding, setAdding] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [editingTitle, setEditingTitle] = useState(false)

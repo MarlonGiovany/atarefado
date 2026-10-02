@@ -38,31 +38,46 @@ export const UNAUTHORIZED_EVENT = 'atarefado:unauthorized'
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'DELETE'
 
+const OFFLINE_MESSAGE = 'Não foi possível conectar ao servidor. Tente novamente em instantes.'
+
 export async function api<T = void>(
   path: string,
   method: Method = 'GET',
   body?: unknown,
 ): Promise<T> {
   const token = tokenStore.get()
-  const res = await fetch(`/api${path}`, {
-    method,
-    headers: {
-      ...(body !== undefined && { 'Content-Type': 'application/json' }),
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  })
+  let res: Response
+  try {
+    res = await fetch(`/api${path}`, {
+      method,
+      headers: {
+        ...(body !== undefined && { 'Content-Type': 'application/json' }),
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
+  } catch {
+    throw new ApiError(0, OFFLINE_MESSAGE)
+  }
 
   if (res.status === 401 && token) {
     tokenStore.clear()
     window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
   }
 
-  const text = await res.text()
-  const data = text ? JSON.parse(text) : undefined
+  // Our API always answers JSON (errors included); anything else came from a proxy or gateway
+  let data: { error?: string } | undefined
+  try {
+    const text = await res.text()
+    data = text ? JSON.parse(text) : undefined
+  } catch {
+    throw new ApiError(502, OFFLINE_MESSAGE)
+  }
 
   if (!res.ok) {
-    throw new ApiError(res.status, data?.error ?? `Falha na requisição (${res.status})`)
+    if (data?.error) throw new ApiError(res.status, data.error)
+    if (res.status >= 500) throw new ApiError(502, OFFLINE_MESSAGE)
+    throw new ApiError(res.status, `Falha na requisição (${res.status})`)
   }
   return data as T
 }

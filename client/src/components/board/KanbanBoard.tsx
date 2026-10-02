@@ -5,15 +5,24 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import type { DragEndEvent, DragOverEvent, DragStartEvent, UniqueIdentifier } from '@dnd-kit/core'
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import type {
+  Announcements,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  ScreenReaderInstructions,
+  UniqueIdentifier,
+} from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
 import type { Card, Column } from '../../lib/types'
 import { positionBetween } from '../../lib/position'
 import { ColumnView } from './ColumnView'
+import { boardKeyboardCoordinates } from './keyboardCoordinates'
 import { CardContent } from './CardItem'
 import { Button, Input } from '../ui'
 
@@ -34,6 +43,42 @@ function findColumnId(columns: Column[], id: UniqueIdentifier) {
   return columns.find((col) => col.cards.some((card) => card.id === id))?.id
 }
 
+const screenReaderInstructions: ScreenReaderInstructions = {
+  draggable:
+    'Para abrir o card, pressione Enter. Para mover, pressione Espaço, use as setas ' +
+    'e pressione Espaço de novo para soltar. Esc cancela o movimento.',
+}
+
+/** Screen reader messages in Portuguese, naming the card, column and position instead of ids. */
+function buildAnnouncements(columns: Column[]): Announcements {
+  const cardTitle = (id: UniqueIdentifier) =>
+    columns.flatMap((col) => col.cards).find((c) => c.id === id)?.title ?? 'card'
+  // "coluna "A fazer", posição 2 de 3" for the spot the card is over
+  const place = (overId: UniqueIdentifier) => {
+    const column = columns.find((col) => col.id === findColumnId(columns, overId))
+    if (!column) return 'fora das colunas'
+    const index = column.cards.findIndex((c) => c.id === overId)
+    const total = column.cards.length
+    return index >= 0
+      ? `coluna "${column.title}", posição ${index + 1} de ${total}`
+      : `fim da coluna "${column.title}"`
+  }
+  return {
+    onDragStart: ({ active }) =>
+      `Card "${cardTitle(active.id)}" selecionado. Use as setas para mover e Espaço para soltar.`,
+    onDragOver: ({ active, over }) =>
+      over
+        ? `Card "${cardTitle(active.id)}" na ${place(over.id)}.`
+        : `Card "${cardTitle(active.id)}" fora das colunas.`,
+    onDragEnd: ({ active, over }) =>
+      over
+        ? `Card "${cardTitle(active.id)}" solto na ${place(over.id)}.`
+        : `Card "${cardTitle(active.id)}" voltou ao lugar.`,
+    onDragCancel: ({ active }) =>
+      `Movimento cancelado. Card "${cardTitle(active.id)}" voltou ao lugar.`,
+  }
+}
+
 export function KanbanBoard({
   columns,
   setColumns,
@@ -52,8 +97,14 @@ export function KanbanBoard({
 
   const sensors = useSensors(
     // A small distance lets a plain click open the card instead of starting a drag
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    // On touch screens a drag needs press-and-hold, so swiping still scrolls the page
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    // Only Space picks a card up, so Enter keeps opening it
+    useSensor(KeyboardSensor, {
+      coordinateGetter: boardKeyboardCoordinates,
+      keyboardCodes: { start: ['Space'], cancel: ['Escape'], end: ['Space', 'Enter'] },
+    }),
   )
 
   function handleDragStart({ active }: DragStartEvent) {
@@ -143,6 +194,7 @@ export function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
+      accessibility={{ announcements: buildAnnouncements(columns), screenReaderInstructions }}
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
