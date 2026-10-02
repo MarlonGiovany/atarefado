@@ -18,6 +18,50 @@ model User {
   createdAt    DateTime      @default(now())
   memberships  BoardMember[]
   assigned     Card[]        @relation("CardAssignee")
+  sessions     Session[]
+  resetTokens  PasswordResetToken[]
+  googleLinks  GoogleLinkRequest[]
+}
+
+// Server-side login session. The browser holds a random token in an HttpOnly
+// cookie; only its SHA-256 hash is stored, so a database leak can't be replayed.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+// "Esqueci minha senha": single-use, short-lived, stored only as a hash.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([userId])
+}
+
+// A Google sign-in that matched an existing password account by e-mail. The
+// Google identity is only linked after the user confirms that account's password.
+model GoogleLinkRequest {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  googleId  String
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
 }
 
 model Board {

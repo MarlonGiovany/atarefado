@@ -8,8 +8,11 @@ Gerenciador de tarefas colaborativo no estilo Kanban: crie quadros, organize as 
 
 ## Funcionalidades
 
-- **Autenticação**: cadastro e login com JWT; senhas criptografadas com bcrypt
-- **Login com Google** (opcional): botão oficial "Continuar com o Google"; o servidor confere a assinatura do token com o Google e vincula a conta pelo e-mail verificado
+- **Autenticação**: cadastro e login com e-mail e senha (bcrypt), sessões no servidor em cookie `HttpOnly`, logout que realmente encerra a sessão e "Sair de todos os dispositivos"
+- **Login com Google** (opcional): botão oficial "Continuar com o Google"; o servidor valida o token com o Google e identifica a conta pelo `sub`. Se já existir uma conta com o mesmo e-mail, o vínculo exige a senha dela
+- **Esqueci minha senha**: link por e-mail, de uso único e válido por 30 minutos
+- **Minha conta**: criar ou trocar a senha (inclusive para contas criadas pelo Google)
+- **Segurança**: proteção CSRF, limite de tentativas, mensagens que não revelam quais e-mails têm conta e política de senhas. Detalhes no [relatório de segurança](SECURITY.md)
 - **Quadros**: criar, renomear e excluir; cada quadro novo já vem com *A fazer / Em andamento / Concluído*
 - **Organização por data**: cada tarefa pertence a um dia, e o quadro mostra só as tarefas do dia selecionado (por padrão, hoje)
   - Seletor com a semana, a quantidade de tarefas por dia, setas de dia anterior/próximo e calendário para pular para qualquer data
@@ -27,7 +30,7 @@ Gerenciador de tarefas colaborativo no estilo Kanban: crie quadros, organize as 
 | Camada | Ferramentas |
 |---|---|
 | Front-end | React 19, TypeScript, Vite, Tailwind CSS 4, React Router, dnd-kit |
-| Back-end | Node.js, Express 5, TypeScript, Zod (validação), JWT |
+| Back-end | Node.js, Express 5, TypeScript, Zod (validação), bcrypt, helmet, express-rate-limit, Nodemailer, google-auth-library |
 | Banco de dados | Prisma 7 ORM, SQLite (desenvolvimento); pode ser trocado por PostgreSQL |
 
 ## Como rodar
@@ -38,7 +41,7 @@ Requisito: Node.js 20 ou superior.
 # 1. API
 cd server
 npm install
-cp .env.example .env        # depois defina JWT_SECRET com uma string longa e aleatória
+cp .env.example .env        # as variáveis estão explicadas no próprio arquivo
 npx prisma migrate dev      # cria o banco de dados
 npx prisma generate
 npm run db:seed             # opcional: conta demo e quadro de exemplo
@@ -52,6 +55,10 @@ npm run dev                 # http://localhost:5173
 
 **Conta demo** (depois do seed): `demo@atarefado.dev` / `demo12345`
 
+### E-mails (recuperação de senha)
+
+Em desenvolvimento não é preciso configurar nada: os e-mails são salvos em `server/.mail-outbox/` (abra o `.html` no navegador para clicar no link). Em produção, configure as variáveis `SMTP_*` e `MAIL_FROM` no `server/.env`; sem elas o servidor não inicia em modo produção.
+
 ### Login com Google (opcional)
 
 Sem configuração o app funciona normalmente, só sem o botão do Google. Para ativar:
@@ -64,7 +71,7 @@ Sem configuração o app funciona normalmente, só sem o botão do Google. Para 
 
 O ID do cliente não é secreto (ele aparece na página); nenhuma "chave secreta do cliente" é usada.
 
-Como funciona: o botão do Google devolve um *ID token* assinado; a API confere assinatura, validade, emissor e se o token foi emitido para o nosso ID do cliente. Se já existir uma conta com o mesmo e-mail, o Google é vinculado a ela; se não, uma conta nova é criada sem senha.
+Como funciona: o botão do Google devolve um *ID token* assinado; a API confere assinatura, validade, emissor e se o token foi emitido para o nosso ID do cliente, e identifica a pessoa pelo `sub` do Google. Se não existir conta com aquele e-mail, uma conta nova é criada sem senha. Se já existir uma conta com senha usando o mesmo e-mail, o app pede a senha dessa conta antes de vincular o Google a ela.
 
 ## Como funcionam as datas
 
@@ -78,15 +85,21 @@ Cada card guarda uma `position` fracionária. Quando um card é solto entre outr
 
 ## Visão geral da API
 
-Todas as rotas, exceto as de autenticação, exigem `Authorization: Bearer <token>`.
+A sessão vai no cookie `atarefado_session` (`HttpOnly`), definido no login. Todas as rotas, exceto as de autenticação, exigem uma sessão válida, e toda requisição que altera dados precisa vir da origem do front-end (proteção CSRF).
 
 | Método | Rota | Descrição |
 |---|---|---|
-| POST | `/api/auth/register` | Criar conta |
+| POST | `/api/auth/register` | Criar conta (já inicia a sessão) |
 | POST | `/api/auth/login` | Entrar |
-| GET | `/api/auth/me` | Usuário logado |
+| POST | `/api/auth/logout` | Encerrar a sessão atual |
+| POST | `/api/auth/logout-all` | Encerrar todas as sessões |
+| GET | `/api/auth/me` | Usuário logado e formas de entrar (`hasPassword`, `hasGoogle`) |
 | GET | `/api/auth/config` | Diz se o login com Google está ativo (e o ID do cliente) |
-| POST | `/api/auth/google` | Entrar com o *ID token* do Google |
+| POST | `/api/auth/google` | Entrar com o *ID token* do Google (409 `google_link_required` se o e-mail já tiver conta com senha) |
+| POST | `/api/auth/google/link` | Confirmar a senha da conta existente e vincular o Google |
+| POST | `/api/auth/forgot-password` | Pedir o e-mail de redefinição (resposta sempre genérica) |
+| POST | `/api/auth/reset-password` | Definir nova senha com o token do e-mail |
+| PUT | `/api/account/password` | Criar ou trocar a senha |
 | GET / POST | `/api/boards` | Listar / criar quadros |
 | GET | `/api/boards/:id?date=AAAA-MM-DD` | Quadro com colunas, membros e os cards do dia |
 | PATCH / DELETE | `/api/boards/:id` | Renomear / excluir quadro (excluir: dono) |
@@ -107,13 +120,25 @@ Todas as rotas, exceto as de autenticação, exigem `Authorization: Bearer <toke
 ```
 client/   App React (pages, components/board, lib/api, lib/dates)
 server/   API Express (routes, middleware, lib) + schema, migrations e seed do Prisma
+          tests/  testes de ponta a ponta da API, de segurança e do login com Google
 ```
+
+## Testes
+
+Com a API rodando (`npm run dev` em `server/`), em outro terminal na pasta `server/`:
+
+```bash
+npm test    # 145 verificações: rotas, controle de acesso, sessões, CSRF, senhas, recuperação de senha e Google
+```
+
+Os detalhes estão no [relatório de segurança](SECURITY.md).
 
 ## Próximos passos
 
 - [ ] Sincronização em tempo real entre usuários (Socket.IO)
 - [ ] Comentários e histórico de atividades nos cards
-- [ ] Testes automatizados (Vitest + Supertest) e CI com GitHub Actions
+- [ ] Verificação de e-mail no cadastro e autenticação em dois fatores
+- [ ] CI com GitHub Actions rodando os testes
 - [ ] Deploy (Vercel + Render) com PostgreSQL
 - [ ] Modo escuro
 

@@ -4,7 +4,7 @@
  *
  *   Demo login: demo@atarefado.dev / demo12345
  */
-import bcrypt from "bcryptjs";
+import { hashPassword } from "../src/lib/passwords.js";
 import { prisma } from "../src/lib/prisma.js";
 
 const DEMO_PASSWORD = "demo12345";
@@ -75,7 +75,7 @@ async function main() {
   });
   await prisma.user.deleteMany({ where: { email: { in: emails } } });
 
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
+  const passwordHash = await hashPassword(DEMO_PASSWORD);
   const created = await Promise.all(
     users.map((u) => prisma.user.create({ data: { ...u, passwordHash } })),
   );

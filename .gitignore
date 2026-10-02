@@ -4,4 +4,6 @@ dist/
 *.db
 *.db-journal
 server/src/generated/
+# Development e-mails (contain password reset links)
+server/.mail-outbox/
 .DS_Store

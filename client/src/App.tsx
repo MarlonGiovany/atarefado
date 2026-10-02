@@ -6,6 +6,9 @@ import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { BoardsPage } from './pages/BoardsPage'
 import { BoardPage } from './pages/BoardPage'
+import { AccountPage } from './pages/AccountPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { ServerUnavailable } from './components/ServerUnavailable'
 import { Spinner } from './components/ui'
 
@@ -31,8 +34,12 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<PublicOnly><LoginPage /></PublicOnly>} />
+          {/* Reachable signed in or out: the e-mail link must always work */}
+          <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+          <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
           <Route path="/" element={<Protected><BoardsPage /></Protected>} />
           <Route path="/boards/:boardId" element={<Protected><BoardPage /></Protected>} />
+          <Route path="/conta" element={<Protected><AccountPage /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

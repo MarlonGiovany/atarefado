@@ -1,28 +1,25 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { api, ApiError, tokenStore, UNAUTHORIZED_EVENT } from '../lib/api'
+import { api, ApiError, UNAUTHORIZED_EVENT } from '../lib/api'
 import type { User } from '../lib/types'
 import { AuthContext } from './useAuth'
+import type { GoogleLinkRequest } from './useAuth'
 
-type AuthResponse = { token: string; user: User }
+type AuthResponse = { user: User }
 type SessionStatus = 'checking' | 'ready' | 'offline'
 
 const RETRY_DELAY_MS = 5000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [status, setStatus] = useState<SessionStatus>(() =>
-    tokenStore.get() ? 'checking' : 'ready',
-  )
+  const [status, setStatus] = useState<SessionStatus>('checking')
   const [attempt, setAttempt] = useState(0)
 
-  // Restore the session from a saved token. Only a 401 ends the session (api() clears
-  // the token then); any other failure keeps the token and retries, so a server that's
-  // briefly down doesn't log anyone out.
+  // The session cookie is HttpOnly, so ask the API who we are. 401 means signed out;
+  // any other failure means the API is unreachable: keep trying instead of logging out.
   useEffect(() => {
-    if (!tokenStore.get()) return
     let active = true
-    api<{ user: User }>('/auth/me').then(
+    api<AuthResponse>('/auth/me').then(
       ({ user }) => {
         if (!active) return
         setUser(user)
@@ -30,7 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       (err) => {
         if (!active) return
-        setStatus(err instanceof ApiError && err.status === 401 ? 'ready' : 'offline')
+        if (err instanceof ApiError && err.status === 401) {
+          setUser(null)
+          setStatus('ready')
+        } else {
+          setStatus('offline')
+        }
       },
     )
     return () => {
@@ -44,46 +46,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer)
   }, [status, attempt])
 
-  const retry = useCallback(() => setAttempt((n) => n + 1), [])
-
   useEffect(() => {
     const onUnauthorized = () => setUser(null)
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
   }, [])
 
-  const handleAuth = useCallback(({ token, user }: AuthResponse) => {
-    tokenStore.set(token)
+  const retry = useCallback(() => setAttempt((n) => n + 1), [])
+
+  const refreshUser = useCallback(async () => {
+    const { user } = await api<AuthResponse>('/auth/me')
     setUser(user)
   }, [])
 
   const login = useCallback(
     async (email: string, password: string) => {
-      handleAuth(await api<AuthResponse>('/auth/login', 'POST', { email, password }))
+      await api<AuthResponse>('/auth/login', 'POST', { email, password })
+      await refreshUser()
     },
-    [handleAuth],
+    [refreshUser],
   )
 
   const loginWithGoogle = useCallback(
-    async (credential: string) => {
-      handleAuth(await api<AuthResponse>('/auth/google', 'POST', { credential }))
+    async (credential: string): Promise<GoogleLinkRequest | null> => {
+      try {
+        await api<AuthResponse>('/auth/google', 'POST', { credential })
+      } catch (err) {
+        const data = err instanceof ApiError ? err.data : undefined
+        if (data?.code === 'google_link_required') {
+          return { email: String(data.email), linkToken: String(data.linkToken) }
+        }
+        throw err
+      }
+      await refreshUser()
+      return null
     },
-    [handleAuth],
+    [refreshUser],
+  )
+
+  const confirmGoogleLink = useCallback(
+    async (linkToken: string, password: string) => {
+      await api<AuthResponse>('/auth/google/link', 'POST', { linkToken, password })
+      await refreshUser()
+    },
+    [refreshUser],
   )
 
   const register = useCallback(
     async (name: string, email: string, password: string) => {
-      handleAuth(
-        await api<AuthResponse>('/auth/register', 'POST', { name, email, password }),
-      )
+      await api<AuthResponse>('/auth/register', 'POST', { name, email, password })
+      await refreshUser()
     },
-    [handleAuth],
+    [refreshUser],
   )
 
-  const logout = useCallback(() => {
-    tokenStore.clear()
+  const logout = useCallback(async () => {
+    try {
+      await api('/auth/logout', 'POST')
+    } finally {
+      setUser(null)
+      setStatus('ready')
+    }
+  }, [])
+
+  const logoutEverywhere = useCallback(async () => {
+    await api('/auth/logout-all', 'POST')
     setUser(null)
-    setStatus('ready')
   }, [])
 
   return (
@@ -95,8 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         retry,
         login,
         loginWithGoogle,
+        confirmGoogleLink,
         register,
+        refreshUser,
         logout,
+        logoutEverywhere,
       }}
     >
       {children}

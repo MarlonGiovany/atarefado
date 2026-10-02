@@ -14,9 +14,15 @@ export function Layout({ children }: { children: ReactNode }) {
             <Logo />
           </Link>
           {user && (
-            <div className="flex items-center gap-3">
-              <span className="hidden text-sm text-slate-600 sm:inline">{user.name}</span>
-              <Avatar name={user.name} id={user.id} />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link
+                to="/conta"
+                title="Minha conta"
+                className="flex items-center gap-3 rounded-full py-1 pr-1 pl-2 hover:bg-slate-100 sm:pl-3"
+              >
+                <span className="hidden text-sm text-slate-600 sm:inline">{user.name}</span>
+                <Avatar name={user.name} id={user.id} />
+              </Link>
               <Button variant="ghost" onClick={logout}>
                 Sair
               </Button>

@@ -43,7 +43,7 @@ export function ConfirmDialog({ title, message, confirmLabel, onConfirm, onClose
           Cancelar
         </Button>
         <Button variant="dangerSolid" onClick={handleConfirm} disabled={busy}>
-          {busy ? 'Excluindo…' : confirmLabel}
+          {busy ? 'Aguarde…' : confirmLabel}
         </Button>
       </div>
     </Modal>

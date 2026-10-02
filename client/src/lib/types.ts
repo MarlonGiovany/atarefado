@@ -2,6 +2,9 @@ export type User = {
   id: string
   name: string
   email: string
+  /** Present on /auth/me: how this account can sign in */
+  hasPassword?: boolean
+  hasGoogle?: boolean
 }
 
 export type Card = {
